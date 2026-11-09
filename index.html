@@ -723,15 +723,10 @@ function updateTransaction(id, updatedFields) {
   saveData(); render();
 }
 
-function deleteTransaction(id, skipConfirm = false) {
+function deleteTransaction(id) {
   const target = transactions.find(t => t.id === id);
   if (!target) return false;
 
-  const isPending = target.status === 'pending';
-  const sign = target.type === 'income' ? '+' : '−';
-  const label = `${target.category}: ${sign}${fmt(target.amount)} грн (${target.date})`;
-
-  // Перевірка: якщо це частково підтверджена операція і очікуваний запис ще існує
   let returnToPending = false;
   let parentPending = null;
   if (target.parentPendingId) {
@@ -741,25 +736,24 @@ function deleteTransaction(id, skipConfirm = false) {
     }
   }
 
-  if (!skipConfirm) {
-    if (returnToPending) {
-      if (!confirm(`Видалити операцію «${label}»?\n\nСума ${fmt(target.amount)} грн буде автоматично повернута назад у очікувану операцію «${parentPending.category}»!`)) {
-        return false;
-      }
-    } else {
-      const q = isPending 
-        ? `Видалити очікувану операцію «${label}»?` 
-        : `Ви дійсно хочете видалити операцію «${label}»?`;
-      if (!confirm(q)) {
-        return false;
-      }
-    }
-  }
+  modal = {
+    mode: 'delete_confirm',
+    tx: target,
+    returnToPending: returnToPending,
+    parentPending: parentPending
+  };
+  render();
+  return true;
+}
+
+function executeDelete(id, returnToPending, parentPendingId) {
+  const target = transactions.find(t => t.id === id);
+  if (!target) { closeModal(); return; }
 
   let proposedTx = transactions.filter(t => t.id !== id);
-  if (returnToPending && parentPending) {
+  if (returnToPending && parentPendingId) {
     proposedTx = proposedTx.map(t => {
-      if (t.id === parentPending.id) {
+      if (t.id === parentPendingId) {
         return {
           ...t,
           amount: Math.round((t.amount + target.amount) * 100) / 100
@@ -772,22 +766,39 @@ function deleteTransaction(id, skipConfirm = false) {
   const sim = validateSimulatedState(proposedTx);
   if (sim.savings < 0) {
     showToast(`❌ Неможливо видалити: скарбничка піде в мінус (${fmt(sim.savings)} грн)`);
-    return false;
+    closeModal();
+    return;
   }
   if (sim.wallet < 0) {
     showToast(`❌ Неможливо видалити: гаманець піде в мінус (${fmt(sim.wallet)} грн)`);
-    return false;
+    closeModal();
+    return;
   }
 
   transactions = proposedTx;
-  saveData(); 
-  render();
+  saveData();
+  closeModal();
   if (returnToPending) {
     showToast(`🗑️ Видалено! ${fmt(target.amount)} грн повернено в очікувані`);
   } else {
     showToast('🗑️ Запис успішно видалено!');
   }
-  return true;
+}
+
+function deleteCategory(type, cat) {
+  modal = {
+    mode: 'delete_cat_confirm',
+    catType: type,
+    catName: cat
+  };
+  render();
+}
+
+function executeDeleteCategory(type, cat) {
+  customCategories[type] = (customCategories[type] || []).filter((c) => c !== cat);
+  saveCategories();
+  closeModal();
+  showToast(`🗑️ Категорію «${cat}» видалено`);
 }
 
 function txForMonth(key) { return transactions.filter(t => t.date.slice(0, 7) === key); }
@@ -907,11 +918,7 @@ function selectCategory(btn, value) {
   }
 }
 
-function deleteCategory(type, cat) {
-  if (!confirm(`Видалити категорію "${cat}"?`)) return;
-  customCategories[type] = (customCategories[type] || []).filter((c) => c !== cat);
-  saveCategories(); render();
-}
+
 
 function attachModalListeners() {
   if (!modal) return;
@@ -1275,6 +1282,75 @@ function importData(event) {
 }
 
 function renderModal() {
+  if (modal.mode === 'delete_confirm') {
+    const tx = modal.tx;
+    const isPending = tx.status === 'pending';
+    const isIncome = tx.type === 'income';
+    const sign = isPending ? '⏳ ' : (isIncome ? '+' : '−');
+    const amtColor = isPending ? 'var(--accent)' : (isIncome ? 'var(--income)' : 'var(--expense)');
+    const parent = modal.parentPending;
+    const returnToPending = modal.returnToPending;
+
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:400px; text-align:center;">
+        <div style="width:52px; height:52px; border-radius:50%; background:var(--expense-dim); color:var(--expense); display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 14px;">
+          🗑️
+        </div>
+        <h3 class="sheet-title" style="margin:0 0 6px; font-size:18px;">Видалити операцію?</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0 0 16px;">
+          Цю дію не можна буде скасувати.
+        </p>
+
+        <!-- Картка операції -->
+        <div style="background:var(--bg-elevated-2); border:1px solid var(--stroke); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:14px; text-align:left;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="font-weight:600; font-size:15px;">${iconFor(tx.category)} ${escapeHtml(tx.category)}</div>
+            <div style="font-family:'Sora',sans-serif; font-weight:700; font-size:16px; color:${amtColor};">
+              ${sign}${fmt(tx.amount)} грн
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--text-tertiary);">
+            ${escapeHtml(tx.date)} ${tx.comment ? `• ${escapeHtml(tx.comment)}` : ''}
+          </div>
+        </div>
+
+        ${returnToPending && parent ? `
+          <!-- Повернення в очікувані -->
+          <div style="background:rgba(212, 162, 76, 0.12); border:1px solid rgba(212, 162, 76, 0.3); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px; text-align:left; font-size:12.5px; color:var(--accent); line-height:1.4;">
+            ↩️ Сума <b>${fmt(tx.amount)} грн</b> буде автоматично повернена назад у очікувану операцію <b>«${escapeHtml(parent.category)}»</b>!
+          </div>
+        ` : ''}
+
+        <div class="sheet-actions" style="margin-top:6px;">
+          <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+          <button type="button" class="btn btn-danger" style="background:var(--expense); color:#14161c; font-weight:700;" onclick="executeDelete('${tx.id}', ${returnToPending ? 'true' : 'false'}, '${parent ? parent.id : ''}')">Видалити</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'delete_cat_confirm') {
+    const cat = modal.catName;
+    const type = modal.catType;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:380px; text-align:center;">
+        <div style="width:48px; height:48px; border-radius:50%; background:var(--expense-dim); color:var(--expense); display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 12px;">
+          🗑️
+        </div>
+        <h3 class="sheet-title" style="margin:0 0 6px; font-size:18px;">Видалити категорію?</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0 0 16px;">
+          Ви дійсно хочете видалити категорію <b>«${iconFor(cat)} ${escapeHtml(cat)}»</b>? Існуючі операції з нею збережуться.
+        </p>
+        <div class="sheet-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+          <button type="button" class="btn btn-danger" style="background:var(--expense); color:#14161c; font-weight:700;" onclick="executeDeleteCategory('${type}', '${escapeHtml(cat)}')">Видалити</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
   if (modal.mode === 'icon_picker') {
     const targetCat = modal.category;
     const isCustom = targetCat === '__custom__';
