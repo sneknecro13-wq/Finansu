@@ -312,6 +312,19 @@
 <div id="app"><div class="loading-msg">Завантаження…</div></div>
 
 <script>
+window.onerror = function(msg, url, line, col, error) {
+  var app = document.getElementById('app');
+  if (app) {
+    app.innerHTML = '<div style="padding:40px 20px; color:#f2685c; font-family:sans-serif; text-align:center;">' +
+      '<div style="font-size:36px; margin-bottom:12px;">⚠️</div>' +
+      '<div style="font-size:17px; font-weight:700; color:#f2f3f5; margin-bottom:8px;">Помилка запуску скрипта</div>' +
+      '<div style="font-size:13px; color:#8b90a0; margin-bottom:20px; word-break:break-word;">' + (msg || error) + ' (рядок ' + line + ')</div>' +
+      '<button onclick="localStorage.clear(); location.reload();" style="background:#232733; color:#f2f3f5; border:1px solid #2b2f3b; padding:12px 18px; border-radius:12px; font-size:14px; cursor:pointer;">Скинути памʼять і перезавантажити</button>' +
+    '</div>';
+  }
+  return false;
+};
+
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const STORAGE_KEY = 'finance-transactions-v1';
 const CATS_KEY = 'finance-custom-categories-v1';
@@ -475,4 +488,726 @@ async function saveBackupUrl(url) {
 function scheduleTelegramSync() {
   if (telegramConfig && telegramConfig.token && telegramConfig.chatId) {
     clearTimeout(tgSyncTimer);
-    t
+    tgSyncTimer = setTimeout(telegramSyncNow, 2000);
+  }
+}
+
+function scheduleCloudSync() {
+  if (backupUrl) { clearTimeout(syncTimer); syncTimer = setTimeout(cloudSyncNow, 2500); }
+}
+
+async function cloudSyncNow() {
+  if (!backupUrl) return;
+  try {
+    await fetch(backupUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transactions, customCategories, startingBalance, savedAt: new Date().toISOString() })
+    });
+  } catch (e) { console.error(e); }
+}
+
+async function setupCloudBackup() {
+  const current = backupUrl || '';
+  const input = prompt('Встав посилання на твій Google Apps Script (Web app URL):', current);
+  if (input === null) return;
+  const trimmed = input.trim();
+  if (!trimmed) {
+    await saveBackupUrl('');
+    showToast('☁️ Хмарний бекап вимкнено');
+    render(); return;
+  }
+  await saveBackupUrl(trimmed);
+  showToast('✅ Хмарний бекап успішно підключено');
+  render(); cloudSyncNow();
+}
+
+async function restoreFromCloud() {
+  if (!backupUrl) { showToast('❌ Спочатку налаштуй підключення до хмари'); return; }
+  try {
+    const res = await fetch(backupUrl);
+    const parsed = await res.json();
+    if (typeof parsed.startingBalance === 'number') saveStartingBalance(parsed.startingBalance);
+    transactions = parsed.transactions || [];
+    if (parsed.customCategories) customCategories = parsed.customCategories;
+    saveData(); saveCategories(); render();
+    showToast('✅ Дані повністю відновлено з хмари!');
+  } catch (e) { showToast('❌ Не вдалося завантажити дані з хмари'); }
+}
+
+async function loadTelegramConfig() {
+  try {
+    if (window.storage) { const res = await window.storage.get(TG_KEY, false); telegramConfig = res ? JSON.parse(res.value) : null; }
+    else telegramConfig = JSON.parse(localStorage.getItem(TG_KEY) || 'null');
+  } catch (e) { telegramConfig = null; }
+  if (loaded) render();
+}
+
+async function saveTelegramConfig(cfg) {
+  telegramConfig = cfg;
+  try {
+    if (window.storage) await window.storage.set(TG_KEY, JSON.stringify(cfg), false);
+    else { if (cfg) localStorage.setItem(TG_KEY, JSON.stringify(cfg)); else localStorage.removeItem(TG_KEY); }
+  } catch (e) { console.error(e); }
+}
+
+async function telegramSyncNow() {
+  if (!telegramConfig || !telegramConfig.token || !telegramConfig.chatId) return;
+  try {
+    const payload = JSON.stringify({ transactions, customCategories, startingBalance, savedAt: new Date().toISOString() }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const form = new FormData();
+    form.append('chat_id', telegramConfig.chatId);
+    form.append('document', blob, 'finance-backup.json');
+    const res = await fetch(`https://api.telegram.org/bot${telegramConfig.token}/sendDocument`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (data?.result?.message_id) {
+      const prevMessageId = telegramConfig.lastMessageId;
+      telegramConfig.lastMessageId = data.result.message_id;
+      await saveTelegramConfig(telegramConfig);
+      if (prevMessageId) {
+        const delForm = new FormData();
+        delForm.append('chat_id', telegramConfig.chatId);
+        delForm.append('message_id', prevMessageId);
+        fetch(`https://api.telegram.org/bot${telegramConfig.token}/deleteMessage`, {
+          method: 'POST',
+          body: delForm
+        }).catch(() => {});
+      }
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function setupTelegram() {
+  const token = prompt('Встав токен бота:', telegramConfig?.token || ''); if (token === null) return;
+  const chatId = prompt('Встав свій chat_id:', telegramConfig?.chatId || ''); if (chatId === null) return;
+  if (!token.trim() || !chatId.trim()) {
+    await saveTelegramConfig(null); showToast('✈️ Telegram-бекап вимкнено'); render(); return;
+  }
+  await saveTelegramConfig({ token: token.trim(), chatId: chatId.trim(), lastMessageId: telegramConfig?.lastMessageId || null });
+  showToast('✅ Telegram-бекап успішно увімкнено!'); render(); telegramSyncNow();
+}
+
+function setupStartingBalance() {
+  const current = startingBalance || 0;
+  const input = prompt('Введіть ваш початковий баланс (стартовий капітал), грн:', current);
+  if (input === null) return;
+  const parsedAmount = Math.max(0, parseFloat(input.trim().replace(',', '.').replace(/[^0-9.]/g, '')) || 0);
+  
+  const confirmed = transactions.filter(t => t.status !== 'pending');
+  const inc = confirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const exp = confirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const sav = confirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
+  const tak = confirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
+  
+  const newWallet = parsedAmount + inc - exp - sav + tak;
+  if (newWallet < 0) {
+    showToast(`❌ Помилка: з таким капіталом гаманець стане ${fmt(newWallet)} грн`);
+    return;
+  }
+
+  saveStartingBalance(parsedAmount);
+  render();
+  showToast('✅ Стартовий капітал успішно оновлено!');
+}
+
+function validateSimulatedState(proposedTx) {
+  const confirmed = proposedTx.filter(t => t.status !== 'pending');
+  const inc = confirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const exp = confirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const sav = confirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
+  const tak = confirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
+  return {
+    savings: sav - tak,
+    wallet: startingBalance + inc - exp - sav + tak
+  };
+}
+
+function addTransaction(tx) {
+  transactions.unshift({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), ...tx });
+  saveData(); render();
+}
+
+function updateTransaction(id, updatedFields) {
+  transactions = transactions.map(t => t.id === id ? { ...t, ...updatedFields } : t);
+  saveData(); render();
+}
+
+function deleteTransaction(id) {
+  let proposedTx = transactions.filter(t => t.id !== id);
+  const sim = validateSimulatedState(proposedTx);
+  if (sim.savings < 0) {
+    showToast(`❌ Неможливо видалити: скарбничка піде в мінус (${fmt(sim.savings)} грн)`);
+    return false;
+  }
+  if (sim.wallet < 0) {
+    showToast(`❌ Неможливо видалити: гаманець піде в мінус (${fmt(sim.wallet)} грн)`);
+    return false;
+  }
+  transactions = proposedTx;
+  saveData(); render(); showToast('🗑️ Запис успішно видалено!');
+  return true;
+}
+
+function txForMonth(key) { return transactions.filter(t => t.date.slice(0, 7) === key); }
+
+function groupSum(list) {
+  const map = {}; list.forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount; });
+  return Object.entries(map).sort((a, b) => b[1] - a[1]);
+}
+
+function forceAppUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for(let registration of registrations) registration.unregister();
+      showToast('🔄 Кеш очищено. Оновлюю сторінку...');
+      setTimeout(() => window.location.reload(true), 1500);
+    });
+  } else window.location.reload(true);
+}
+
+const CATEGORY_ICONS = {
+  'Бізнес': '🏢', 'Зарплата': '💼', 'Фріланс': '💻', 'Інші доходи': '💵',
+  'Квартира': '🏠', 'Їжа': '🍽️', 'Транспорт': '🚗', 'Парковка': '🅿️', 'Повернення парковки': '↩️', 'Комунальні': '💡',
+  'Розваги': '🎬', 'Здоровʼя': '💊', 'Інше': '📦', 'Заощадження': '🏦'
+};
+function iconFor(cat) { return CATEGORY_ICONS[cat] || '📌'; }
+
+
+function getParkingStats() {
+  const confirmed = transactions.filter(t => t.status !== 'pending');
+  const paid = confirmed.filter(t => t.isParking).reduce((s, t) => s + t.amount, 0);
+  const refunded = confirmed.filter(t => t.isParkingRefund).reduce((s, t) => s + t.amount, 0);
+  const debt = paid - refunded;
+  const history = confirmed.filter(t => t.isParking || t.isParkingRefund).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || '')));
+  return { paid, refunded, debt, history };
+}
+
+function openParkingPayModal() {
+  modal = {
+    mode: 'create',
+    type: 'expense',
+    forcedCategory: 'Парковка',
+    isParking: true,
+    title: '🅿️ Сплата за парковку (під повернення)'
+  };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function openParkingRefundModal() {
+  const stats = getParkingStats();
+  modal = {
+    mode: 'create',
+    type: 'income',
+    forcedCategory: 'Повернення парковки',
+    isParkingRefund: true,
+    defaultAmount: stats.debt > 0 ? stats.debt : '',
+    title: '↩ Зарахувати повернення за парковку'
+  };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function toggleParkingHistory() {
+  showParkingHistory = !showParkingHistory;
+  render();
+}
+
+function openModal(type) {
+  modal = { mode: 'create', type };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function openEditModal(txId) {
+  const tx = transactions.find(t => t.id === txId); if (!tx) return;
+  modal = { mode: 'edit', tx, type: tx.type };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function openConfirmModal(txId) {
+  const tx = transactions.find(t => t.id === txId); if (!tx) return;
+  modal = { mode: 'confirm', tx, type: tx.type };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function closeModal() { modal = null; render(); }
+
+function selectCategory(btn, value) {
+  document.querySelectorAll('#chip-grid .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const hidden = document.getElementById('category-hidden');
+  const customInput = document.getElementById('custom-category-input');
+  if (value === '__custom__') {
+    hidden.value = '__custom__'; customInput.style.display = 'block'; customInput.required = true; customInput.focus();
+  } else {
+    hidden.value = value; customInput.style.display = 'none'; customInput.required = false;
+  }
+}
+
+function deleteCategory(type, cat) {
+  if (!confirm(`Видалити категорію "${cat}"?`)) return;
+  customCategories[type] = (customCategories[type] || []).filter((c) => c !== cat);
+  saveCategories(); render();
+}
+
+function attachModalListeners() {
+  if (!modal) return;
+  document.querySelectorAll('#chip-grid .chip-select').forEach((btn) => {
+    btn.addEventListener('click', () => selectCategory(btn, btn.dataset.cat));
+  });
+  document.querySelectorAll('#chip-grid .chip-del').forEach((btn) => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); deleteCategory(modal.type, btn.dataset.cat); });
+  });
+  const customBtn = document.getElementById('chip-custom-btn');
+  if (customBtn) customBtn.addEventListener('click', () => selectCategory(customBtn, '__custom__'));
+}
+
+
+function updatePartialHint(val, total) {
+  const hint = document.getElementById('partial-hint');
+  if (!hint) return;
+  const num = parseFloat(String(val).replace(',', '.').replace(/[^0-9.]/g, '')) || 0;
+  if (num > 0 && num < total) {
+    const diff = Math.round((total - num) * 100) / 100;
+    hint.style.display = 'block';
+    hint.innerHTML = `ℹ️ <b>Часткове зарахування:</b> ${fmt(num)} грн піде у фактичні ${modal.tx && modal.tx.type === 'income' ? 'доходи' : 'витрати'}, а залишок <b>${fmt(diff)} грн</b> залишиться чекати в очікуваних ⏳`;
+  } else if (num >= total) {
+    hint.style.display = 'block';
+    hint.innerHTML = `✅ Операцію буде повністю закрито на суму <b>${fmt(num)} грн</b>.`;
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+function submitModal(e) {
+  e.preventDefault();
+  const form = e.target;
+  const rawAmount = form.amount.value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const amount = parseFloat(rawAmount);
+  let category = form.category ? form.category.value : (modal.tx ? modal.tx.category : '');
+  
+  if (category === '__custom__') category = form['custom-category'].value.trim();
+  if (!amount || amount <= 0 || !category) { showToast('❌ Помилка: Введіть суму більше нуля'); return; }
+
+  const dateStr = form['tx-date'] ? form['tx-date'].value : toLocalDateString(new Date());
+  const isPending = form['is-pending'] ? form['is-pending'].checked : false;
+  const comment = form['tx-comment'] ? form['tx-comment'].value.trim() : (modal.tx ? modal.tx.comment : '');
+  
+  let isParking = modal.isParking || (modal.tx ? modal.tx.isParking : false);
+  let isParkingRefund = modal.isParkingRefund || (modal.tx ? modal.tx.isParkingRefund : false);
+  if (form['is-parking-check']) isParking = form['is-parking-check'].checked;
+
+  const targetStatus = isPending ? 'pending' : 'confirmed';
+  const newFields = { amount, category, date: dateStr, status: targetStatus, comment, isParking, isParkingRefund };
+
+  const isConfirm = modal.mode === 'confirm';
+  let isPartialConfirm = false;
+  let remainingAmount = 0;
+
+  if (isConfirm && modal.tx) {
+    const origAmount = modal.tx.amount;
+    if (amount < origAmount) {
+      isPartialConfirm = true;
+      remainingAmount = Math.round((origAmount - amount) * 100) / 100;
+    }
+  }
+
+  let proposedTx = [...transactions];
+  if (modal.mode === 'create') {
+    proposedTx.unshift({ id: 'temp_check', type: modal.type, ...newFields });
+  } else if (modal.mode === 'edit') {
+    proposedTx = proposedTx.map(t => t.id === modal.tx.id ? { ...t, ...newFields } : t);
+  } else if (isConfirm) {
+    if (isPartialConfirm) {
+      proposedTx = proposedTx.map(t => t.id === modal.tx.id ? { ...t, amount: remainingAmount } : t);
+      proposedTx.unshift({
+        id: 'temp_confirmed',
+        type: modal.tx.type,
+        amount: amount,
+        category: category,
+        date: dateStr,
+        status: 'confirmed',
+        comment: comment,
+        isParking: isParking,
+        isParkingRefund: isParkingRefund
+      });
+    } else {
+      proposedTx = proposedTx.map(t => t.id === modal.tx.id ? { ...t, ...newFields, status: 'confirmed' } : t);
+    }
+  }
+
+  const sim = validateSimulatedState(proposedTx);
+  if (sim.savings < 0) { showToast(`❌ Відхилено: Скарбничка піде в мінус (${fmt(sim.savings)} грн)`); return; }
+  if (sim.wallet < 0) { showToast(`❌ Відхилено: Гаманець піде в мінус (${fmt(sim.wallet)} грн)`); return; }
+
+  const currentCats = customCategories[modal.type] || [];
+  if (!currentCats.some(c => c.toLowerCase() === category.toLowerCase())) {
+    customCategories[modal.type] = [...currentCats, category]; saveCategories();
+  } else {
+    category = currentCats.find(c => c.toLowerCase() === category.toLowerCase()) || category;
+  }
+
+  if (modal.mode === 'create') {
+    addTransaction({ type: modal.type, ...newFields, plannedDate: isPending ? dateStr : null });
+    showToast(isPending ? '⏳ Заплановану операцію збережено!' : (isParking ? '🅿️ Витрату на парковку додано в облік!' : (isParkingRefund ? '↩️ Повернення успішно зараховано!' : '✅ Операцію успішно додано!')));
+  } else if (modal.mode === 'edit') {
+    updateTransaction(modal.tx.id, newFields);
+    showToast('✅ Зміни успішно збережено!');
+  } else if (isConfirm) {
+    if (isPartialConfirm) {
+      // 1. Оновлюємо очікувану операцію залишковою сумою (залишається в очікуваних)
+      updateTransaction(modal.tx.id, {
+        amount: remainingAmount,
+        category: category,
+        comment: comment || modal.tx.comment || ''
+      });
+      // 2. Додаємо підтверджену операцію на фактично отриману/сплачену частину
+      const partLabel = comment ? `${comment} (частина)` : (modal.tx.comment ? `${modal.tx.comment} (частина)` : `Частина очікуваної суми`);
+      addTransaction({
+        type: modal.tx.type,
+        amount: amount,
+        category: category,
+        date: dateStr,
+        status: 'confirmed',
+        confirmedAt: dateStr,
+        comment: partLabel,
+        isParking: isParking,
+        isParkingRefund: isParkingRefund
+      });
+      showToast(`✅ Зараховано ${fmt(amount)} грн! Залишок ${fmt(remainingAmount)} грн чекає в очікуваних ⏳`);
+    } else {
+      updateTransaction(modal.tx.id, { ...newFields, status: 'confirmed', confirmedAt: dateStr });
+      showToast('✅ Операцію успішно підтверджено повністю!');
+    }
+  }
+  closeModal();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (!loaded) { app.innerHTML = '<div class="loading-msg">Завантаження…</div>'; return; }
+
+  const now = currentMonthDate();
+  const key = monthKey(now);
+  const monthTx = txForMonth(key);
+
+  const monthConfirmed = monthTx.filter(t => t.status !== 'pending');
+  const monthPending = monthTx.filter(t => t.status === 'pending');
+  const income = monthConfirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = monthConfirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const saved = monthConfirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
+  const taken = monthConfirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
+  const net = income - expense;
+
+  const simState = validateSimulatedState(transactions);
+  const available = simState.wallet;
+  const totalSavedAllTime = simState.savings;
+
+  const pendingIncMonth = monthPending.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const pendingExpMonth = monthPending.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const projectedAvailable = available + pendingIncMonth - pendingExpMonth;
+
+  const incomeGroups = groupSum(monthConfirmed.filter(t => t.type === 'income'));
+  const expenseGroups = groupSum(monthConfirmed.filter(t => t.type === 'expense'));
+  const maxIncomeCat = incomeGroups.length ? incomeGroups[0][1] : 0;
+  const maxExpenseCat = expenseGroups.length ? expenseGroups[0][1] : 0;
+  
+  const recentTx = [...monthTx].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || '')));
+  const parkingStats = getParkingStats();
+
+  let htmlStr = `
+    <div class="eyebrow"><span class="bag">💰</span><h1>Фінанси</h1></div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <div class="month-label">${MONTHS_UK[now.getMonth()] + ' ' + now.getFullYear()}</div>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="summary-card">
+      <div class="summary-row">
+        <div class="summary-label">Чистими за місяць</div>
+        <div class="summary-net">${net >= 0 ? '+' : ''}${fmt(net)} грн</div>
+      </div>
+      <div class="summary-row" style="margin-bottom:0">
+        <div class="summary-label">Доступно зараз</div>
+        <div class="summary-available">${fmt(available)} грн</div>
+        ${(pendingIncMonth || pendingExpMonth) ? `<div class="summary-projected">Прогноз з планом: <b>${fmt(projectedAvailable)} грн</b></div>` : ''}
+      </div>
+      <div class="split-row">
+        <div class="split-col"><div class="summary-label">Доходи</div><div class="split-value income">+${fmt(income)} грн</div></div>
+        <div class="split-col"><div class="summary-label">Витрати</div><div class="split-value expense">−${fmt(expense)} грн</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="saved-row">
+        <div class="summary-label" style="margin-bottom:0">Відкладено цього місяця</div>
+        <div class="saved-value">${fmt(saved - taken)} грн</div>
+      </div>
+    </div>
+
+    <div class="action-grid">
+      <button class="action-btn" onclick="openModal('income')"><div class="action-icon plus">+</div><div class="action-title">Дохід</div></button>
+      <button class="action-btn" onclick="openModal('expense')"><div class="action-icon minus">−</div><div class="action-title">Витрата</div></button>
+      <button class="action-btn" onclick="openModal('save')"><div class="action-icon save">🏦</div><div class="action-title">Відкласти</div></button>
+      <button class="action-btn" onclick="openModal('take')"><div class="action-icon take">↩</div><div class="action-title">Взяти</div></button>
+    </div>
+
+    <!-- ВІДЖЕТ КОНТРОЛЮ ПАРКОВКИ ТА ВЗАЄМОРОЗРАХУНКІВ -->
+    <div class="parking-card">
+      <div class="parking-head">
+        <div class="parking-title">🅿️ Парковка (взаєморозрахунки)</div>
+        <div class="parking-status ${parkingStats.debt > 0 ? 'debt' : 'clear'}">
+          ${parkingStats.debt > 0 ? `Вам винні: ${fmt(parkingStats.debt)} грн` : '✅ Все повернуто'}
+        </div>
+      </div>
+      <div class="parking-numbers">
+        <div class="parking-col">
+          <div class="parking-label">Сплачено вами</div>
+          <div class="parking-val paid">${fmt(parkingStats.paid)} грн</div>
+        </div>
+        <div class="parking-col">
+          <div class="parking-label">Вже повернули</div>
+          <div class="parking-val back">${fmt(parkingStats.refunded)} грн</div>
+        </div>
+        <div class="parking-col">
+          <div class="parking-label">Залишок боргу</div>
+          <div class="parking-val owe">${fmt(parkingStats.debt)} грн</div>
+        </div>
+      </div>
+      <div class="parking-btn-row">
+        <button class="p-btn pay" onclick="openParkingPayModal()">+ Сплатив парковку</button>
+        <button class="p-btn refund" onclick="openParkingRefundModal()">↩ Повернули гроші</button>
+        <button class="p-btn log" onclick="toggleParkingHistory()">${showParkingHistory ? 'Сховати' : 'Історія'}</button>
+      </div>
+      ${showParkingHistory ? `
+        <div class="parking-history">
+          ${parkingStats.history.length ? parkingStats.history.map(h => `
+            <div class="p-hist-item">
+              <div>
+                <span class="p-hist-tag ${h.isParking ? 'pay' : 'refund'}">${h.isParking ? 'Сплата' : 'Повернення'}</span>
+                <span style="margin-left:6px; color:var(--text-secondary);">${escapeHtml(h.comment || (h.isParking ? 'Парковка' : 'Повернення'))}</span>
+                <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">${escapeHtml(h.date)}</div>
+              </div>
+              <div style="font-family:'Sora',sans-serif; font-weight:700; color:${h.isParking ? 'var(--expense)' : 'var(--income)'}">
+                ${h.isParking ? '−' : '+'}${fmt(h.amount)} грн
+              </div>
+            </div>
+          `).join('') : '<div class="empty-state">Історія парковок порожня</div>'}
+        </div>
+      ` : ''}
+    </div>
+
+  `;
+
+  if (monthPending.length > 0) {
+    htmlStr += `
+    <section class="list-section">
+      <h2 class="section-title">Очікувані операції ⏳</h2>
+      <div class="list-item" style="padding:4px 16px">
+    `;
+    htmlStr += monthPending.map(t => {
+      const isInc = t.type === 'income'; const sign = isInc ? '+~' : '−~'; const amtClass = isInc ? 'income' : 'expense';
+      return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} <span style="font-size:12px; color:var(--accent); font-weight:normal">(${isInc ? 'дохід' : 'витрата'})</span></div><div class="tx-date">План: ${escapeHtml(t.date)}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn confirm-btn" data-id="${escapeHtml(t.id)}" title="Підтвердити факт">✅</button><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
+    }).join('');
+    htmlStr += `
+      </div>
+    </section>
+    `;
+  }
+
+  htmlStr += `
+    <section class="list-section">
+      <h2 class="section-title">Загальні заощадження</h2>
+      <div class="list-item"><div class="list-item-top"><div class="list-item-name">🏦 Відкладено всього</div><div class="list-item-amount" style="color:var(--save)">${fmt(totalSavedAllTime)} грн</div></div></div>
+    </section>
+
+    <section class="list-section">
+      <h2 class="section-title">Доходи за місяць</h2>
+  `;
+  htmlStr += incomeGroups.length ? incomeGroups.map(([cat, amt]) => `<div class="list-item"><div class="list-item-top"><div class="list-item-name">${iconFor(cat)} ${escapeHtml(cat)}</div><div class="list-item-amount income">+${fmt(amt)} грн</div></div><div class="pct-label">${income ? Math.round(amt / income * 100) : 0}% від усіх доходів</div><div class="bar-track"><div class="bar-fill income" style="width:${maxIncomeCat ? (amt / maxIncomeCat * 100) : 0}%"></div></div></div>`).join('') : '<div class="empty-state">Ще немає доходів за цей місяць</div>';
+  
+  htmlStr += `</section><section class="list-section"><h2 class="section-title">Витрати по категоріях</h2>`;
+  htmlStr += expenseGroups.length ? expenseGroups.map(([cat, amt]) => `<div class="list-item"><div class="list-item-top"><div class="list-item-name">${iconFor(cat)} ${escapeHtml(cat)}</div><div class="list-item-amount expense">${fmt(amt)} грн</div></div><div class="pct-label">${expense ? Math.round(amt / expense * 100) : 0}% від усіх витрат</div><div class="bar-track"><div class="bar-fill expense" style="width:${maxExpenseCat ? (amt / maxExpenseCat * 100) : 0}%"></div></div></div>`).join('') : '<div class="empty-state">Ще немає витрат за цей місяць</div>';
+  
+  htmlStr += `
+    </section>
+    <section class="list-section">
+      <h2 class="section-title">Останні операції</h2>
+      <div class="list-item scroll-area">
+  `;
+  htmlStr += recentTx.length ? recentTx.map(t => {
+    const isPending = t.status === 'pending'; const sign = isPending ? '⏳ ' : (t.type === 'income' ? '+' : t.type === 'expense' ? '−' : t.type === 'save' ? '🏦 ' : '↩ '); const amtClass = isPending ? 'pending' : (t.type === 'income' ? 'income' : t.type === 'expense' ? 'expense' : '');
+    return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} ${t.comment ? `<span style="font-size:12px;color:var(--text-secondary)">(${escapeHtml(t.comment)})</span>` : ''}</div><div class="tx-date">${escapeHtml(t.date)} ${t.isParking ? '• <span style="color:var(--accent)">🅿️ парковка</span>' : (t.isParkingRefund ? '• <span style="color:var(--income)">↩️ повернення</span>' : '')} ${isPending ? '• <i>не зараховано</i>' : ''}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
+  }).join('') : '<div class="empty-state">Немає операцій у цьому місяці</div>';
+  htmlStr += `
+      </div>
+    </section>
+    <div class="backup-row">
+      <button class="backup-btn" onclick="setupStartingBalance()">💰 Стартовий капітал: ${fmt(startingBalance)} грн</button>
+    </div>
+    <div class="backup-row">
+      <button class="backup-btn" onclick="exportData()">⬇ Зберегти бекап</button>
+      <button class="backup-btn" onclick="document.getElementById('import-input').click()">⬆ Відновити з файлу</button>
+    </div>
+    <div class="backup-row">
+      <button class="backup-btn" onclick="setupCloudBackup()">☁️ ${backupUrl ? 'Хмара підключена' : 'Підключити хмару'}</button>
+      <button class="backup-btn" onclick="restoreFromCloud()">☁️⬇ З хмари</button>
+    </div>
+    <div class="backup-row">
+      <button class="backup-btn" onclick="setupTelegram()">✈️ ${telegramConfig ? 'Telegram підключено' : 'Підключити Telegram'}</button>
+      <button class="backup-btn" onclick="telegramSyncNow(); showToast('✈️ Відправлено в Telegram')">✈️⬆ Надіслати зараз</button>
+    </div>
+    <div class="backup-row">
+      <button class="backup-btn" onclick="forceAppUpdate()" style="color: var(--expense)">🔄 Оновити додаток (Скинути кеш)</button>
+    </div>
+    <input id="import-input" type="file" accept="application/json" style="display:none" onchange="importData(event)">
+  `;
+
+  if (modal) { htmlStr += renderModal(); }
+  if (toast) { htmlStr += `<div class="toast">${escapeHtml(toast)}</div>`; }
+
+  app.innerHTML = htmlStr;
+
+  document.querySelectorAll('.edit-tx').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openEditModal(btn.dataset.id); }); });
+  document.querySelectorAll('.confirm-btn').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openConfirmModal(btn.dataset.id); }); });
+  document.querySelectorAll('.del-tx').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); deleteTransaction(btn.dataset.id); }); });
+  document.querySelectorAll('.tx-row').forEach(row => { row.addEventListener('click', (e) => { if (e.target.closest('button')) return; openEditModal(row.dataset.id); }); });
+  attachModalListeners();
+}
+
+function exportData() {
+  const payload = { transactions, customCategories, startingBalance };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = `finance-backup-${toLocalDateString(new Date())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('✅ Бекап успішно завантажено');
+}
+
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      startingBalance = typeof parsed.startingBalance === 'number' ? parsed.startingBalance : 0;
+      saveStartingBalance(startingBalance);
+
+      transactions = Array.isArray(parsed) ? parsed : (parsed.transactions || []);
+      saveData();
+
+      if (parsed.customCategories) {
+        customCategories = parsed.customCategories;
+        saveCategories();
+      }
+
+      render();
+      showToast('✅ Дані успішно відновлено начисто!');
+    } catch (e) { showToast('❌ Не вдалося прочитати файл бекапу'); }
+  };
+  reader.readAsText(file); event.target.value = '';
+}
+
+function renderModal() {
+  const isConfirm = modal.mode === 'confirm'; const isEdit = modal.mode === 'edit'; const isCreate = modal.mode === 'create';
+  let title = modal.title || 'Операція';
+  if (!modal.title) {
+    if (isConfirm) title = modal.tx.type === 'income' ? 'Підтвердити отримання' : 'Підтвердити витрату';
+    else if (isEdit) title = 'Редагувати запис';
+    else title = { income: 'Новий дохід', expense: 'Нова витрата', save: 'Відкласти кошти', take: 'Взяти із заощаджень' }[modal.type];
+  }
+
+  const tx = modal.tx || {}; 
+  const currentAmount = tx.amount || modal.defaultAmount || ''; 
+  const currentDate = tx.date || toLocalDateString(new Date());
+  const currentComment = tx.comment || '';
+  const isPending = tx.status === 'pending';
+  const opts = customCategories[modal.type] || []; 
+  const selectedCat = modal.forcedCategory || tx.category || opts[0] || '';
+
+  let modalHtml = `
+  <div class="overlay" onclick="if(event.target===this) closeModal()">
+    <div class="sheet">
+      <h3 class="sheet-title">${title}</h3>
+      <form onsubmit="submitModal(event)">
+        <div class="field">
+          <label>${isConfirm ? `Фактична сума до зарахування, грн (всього очікується: ${fmt(tx.amount)} грн)` : 'Сума, грн'}</label>
+          <input id="amount-input" name="amount" type="text" inputmode="decimal" value="${escapeHtml(currentAmount)}" placeholder="0" required autocomplete="off" ${isConfirm ? `oninput="updatePartialHint(this.value, ${tx.amount})"` : ''}>
+          ${isConfirm ? `<div id="partial-hint" style="font-size:12.5px; color:var(--accent); margin-top:6px; display:none;"></div>` : ''}
+        </div>
+        <div class="field">
+          <label>${isConfirm ? 'Фактична дата проведення' : 'Дата'}</label>
+          <input name="tx-date" type="date" value="${isConfirm ? toLocalDateString(new Date()) : escapeHtml(currentDate)}" required>
+        </div>
+        <div class="field">
+          <label>Коментар / Примітка (необовʼязково)</label>
+          <input name="tx-comment" type="text" value="${escapeHtml(currentComment)}" placeholder="Наприклад: Паркінг ТРЦ, повернення від колеги">
+        </div>
+  `;
+  if (modal.type === 'expense') {
+    modalHtml += `
+      <div class="field">
+        <label class="field-checkbox">
+          <input type="checkbox" name="is-parking-check" ${(modal.isParking || tx.isParking) ? 'checked' : ''}>
+          <span>🅿️ Очікує повернення (парковка / борг)</span>
+        </label>
+      </div>
+    `;
+  }
+  if (isCreate && (modal.type === 'income' || modal.type === 'expense')) {
+    modalHtml += `<div class="field"><label class="field-checkbox"><input type="checkbox" name="is-pending"><span>Запланована операція (ще не проведено)</span></label></div>`;
+  }
+  if (isEdit && (modal.tx.type === 'income' || modal.tx.type === 'expense')) {
+    modalHtml += `<div class="field"><label class="field-checkbox"><input type="checkbox" name="is-pending" ${isPending ? 'checked' : ''}><span>Очікує розрахунку (план)</span></label></div>`;
+  }
+  
+  modalHtml += `
+        <div class="field">
+          <label>Категорія (група)</label>
+          <input type="hidden" name="category" id="category-hidden" value="${escapeHtml(selectedCat)}">
+          <div class="chip-grid" id="chip-grid">
+  `;
+  modalHtml += opts.map((o) => `<span class="chip-wrap"><button type="button" class="chip chip-select ${o === selectedCat ? 'active' : ''}" data-cat="${escapeHtml(o)}">${iconFor(o)} ${escapeHtml(o)}</button><button type="button" class="chip-del" data-cat="${escapeHtml(o)}">×</button></span>`).join('');
+  modalHtml += `
+            <button type="button" class="chip" id="chip-custom-btn">✏️ Своя</button>
+          </div>
+          <input name="custom-category" id="custom-category-input" type="text" placeholder="Введіть назву категорії" style="display:none; margin-top:10px;">
+        </div>
+        <div class="sheet-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+  `;
+  if (isEdit) {
+    modalHtml += `<button type="button" class="btn btn-danger" onclick="if(confirm('Видалити цей запис?')){ deleteTransaction('${tx.id}'); closeModal(); }">Видалити</button>`;
+  }
+  modalHtml += `
+          <button type="submit" class="btn btn-confirm ${isConfirm ? (modal.tx.type === 'income' ? 'income' : 'expense') : (isEdit ? 'edit' : modal.type)}">${isConfirm ? 'Зарахувати' : (isEdit ? 'Зберегти' : 'Додати')}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  
+  return modalHtml;
+}
+
+function changeMonth(delta) { monthOffset += delta; render(); }
+
+loadData(); loadBackupUrl(); loadTelegramConfig();
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(err => console.warn(err)); }
+</script>
+</body>
+</html>
