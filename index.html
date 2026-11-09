@@ -328,16 +328,43 @@ window.onerror = function(msg, url, line, col, error) {
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const STORAGE_KEY = 'finance-transactions-v1';
 const CATS_KEY = 'finance-custom-categories-v1';
+const CATS_ICONS_KEY = 'finance-category-icons-v1';
 const BACKUP_URL_KEY = 'finance-backup-url-v1';
 const TG_KEY = 'finance-telegram-v1';
 const STARTING_BALANCE_KEY = 'finance-starting-balance-v1';
 
+const TG_ICON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px; margin-right:4px;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" fill="#2AABEE"/></svg>`;
+
 const DEFAULT_CATS = {
-  income: ['Зарплата', 'Бізнес', 'Фріланс', 'Повернення парковки', 'Інші доходи'],
+  income: ['Зарплата', 'Бізнес', 'Фріланс', 'Повернення парковки', 'Вишка', 'Шабашка', 'Інші доходи'],
   expense: ['Квартира', 'Їжа', 'Транспорт', 'Парковка', 'Комунальні', 'Розваги', 'Здоровʼя', 'Інше'],
   save: ['Заощадження'],
   take: ['Заощадження']
 };
+
+const DEFAULT_CATEGORY_ICONS = {
+  'Бізнес': '🏢', 'Зарплата': '💼', 'Фріланс': '💻', 'Інші доходи': '💵',
+  'Квартира': '🏠', 'Їжа': '🍽️', 'Транспорт': '🚗', 'Парковка': '🅿️',
+  'Повернення парковки': '↩️', 'Комунальні': '💡',
+  'Розваги': '🎬', 'Здоровʼя': '💊', 'Інше': '📦', 'Заощадження': '🏦',
+  'Вишка': '🏗️', 'Шабашка': '🛠️', 'Підробіток': '🔨', 'Пальне': '⛽',
+  'АЗС': '⛽', 'Таксі': '🚖', 'Кафе': '☕', 'Одяг': '👕', 'Шопінг': '🛍️',
+  'Діти': '👶', 'Тварини': '🐾', 'Техніка': '📱', 'Ремонт': '🔧',
+  'Спорт': '🏋️', 'Подарунки': '🎁', 'Звʼязок': '📶', 'Інтернет': '🌐'
+};
+
+const PRESET_ICONS = [
+  '🏗️', '🛠️', '💼', '💵', '💻', '🚗', '⛽', '🚖', '🍽️', '☕', 
+  '🏠', '💡', '💊', '🎬', '🛍️', '👕', '👶', '🐾', '📱', '🔧', 
+  '🏋️', '🎁', '✈️', '🏦', '🅿️', '↩️', '📦', '🍕', '🛒', '🎓',
+  '💰', '🪙', '🚜', '🧰', '⚡', '📶', '🍺', '🏥', '🎯', '🔥'
+];
+
+let categoryIcons = { ...DEFAULT_CATEGORY_ICONS };
+
+function iconFor(cat) {
+  return categoryIcons[cat] || DEFAULT_CATEGORY_ICONS[cat] || '📌';
+}
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -358,8 +385,8 @@ let toast = null;
 let toastTimer = null;
 let backupUrl = null;
 let syncTimer = null;
-let tgSyncTimer = null;
 let telegramConfig = null;
+let tgSyncTimer = null;
 let showParkingHistory = false;
 
 function showToast(msg) {
@@ -422,6 +449,16 @@ async function loadData() {
     }
   } catch (e) { customCategories = { income: [], expense: [], save: [], take: [] }; }
 
+  try {
+    if (window.storage) {
+      const res = await window.storage.get(CATS_ICONS_KEY, false);
+      categoryIcons = res ? { ...DEFAULT_CATEGORY_ICONS, ...JSON.parse(res.value) } : { ...DEFAULT_CATEGORY_ICONS };
+    } else {
+      const raw = localStorage.getItem(CATS_ICONS_KEY);
+      categoryIcons = raw ? { ...DEFAULT_CATEGORY_ICONS, ...JSON.parse(raw) } : { ...DEFAULT_CATEGORY_ICONS };
+    }
+  } catch (e) { categoryIcons = { ...DEFAULT_CATEGORY_ICONS }; }
+
   let seeded = false;
   Object.keys(DEFAULT_CATS).forEach((type) => {
     const existing = customCategories[type] || [];
@@ -463,6 +500,60 @@ async function saveCategories() {
   scheduleTelegramSync();
 }
 
+async function saveCategoryIcons() {
+  try {
+    if (window.storage) await window.storage.set(CATS_ICONS_KEY, JSON.stringify(categoryIcons), false);
+    else localStorage.setItem(CATS_ICONS_KEY, JSON.stringify(categoryIcons));
+  } catch (e) { console.error(e); }
+  scheduleCloudSync();
+  scheduleTelegramSync();
+}
+
+function openIconPicker(cat) {
+  modal = {
+    mode: 'icon_picker',
+    category: cat,
+    prevModal: modal
+  };
+  render();
+}
+
+function selectIconForCategory(cat, icon) {
+  if (!cat || !icon) return;
+  categoryIcons[cat] = icon;
+  saveCategoryIcons();
+  showToast(`✅ Іконку для «${cat}» змінено на ${icon}`);
+  if (modal && modal.prevModal) modal = modal.prevModal;
+  else modal = null;
+  render();
+}
+
+function submitCustomIcon(e, cat) {
+  e.preventDefault();
+  const val = e.target['custom-icon-input'].value.trim();
+  if (val) selectIconForCategory(cat, val);
+}
+
+function pickCustomIcon(ic) {
+  const btn = document.getElementById('custom-cat-icon-btn');
+  const hidden = document.getElementById('custom-cat-icon-hidden');
+  if (btn) btn.textContent = ic;
+  if (hidden) hidden.value = ic;
+  closeIconPicker();
+}
+
+function submitCustomNewIcon(e) {
+  e.preventDefault();
+  const val = e.target['custom-icon-input'].value.trim();
+  if (val) pickCustomIcon(val);
+}
+
+function closeIconPicker() {
+  if (modal && modal.prevModal) modal = modal.prevModal;
+  else modal = null;
+  render();
+}
+
 async function loadBackupUrl() {
   try {
     if (window.storage) { const res = await window.storage.get(BACKUP_URL_KEY, false); backupUrl = res ? res.value : null; }
@@ -484,14 +575,6 @@ async function saveBackupUrl(url) {
   } catch (e) { console.error(e); }
 }
 
-
-function scheduleTelegramSync() {
-  if (telegramConfig && telegramConfig.token && telegramConfig.chatId) {
-    clearTimeout(tgSyncTimer);
-    tgSyncTimer = setTimeout(telegramSyncNow, 2000);
-  }
-}
-
 function scheduleCloudSync() {
   if (backupUrl) { clearTimeout(syncTimer); syncTimer = setTimeout(cloudSyncNow, 2500); }
 }
@@ -501,7 +584,7 @@ async function cloudSyncNow() {
   try {
     await fetch(backupUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactions, customCategories, startingBalance, savedAt: new Date().toISOString() })
+      body: JSON.stringify({ transactions, customCategories, categoryIcons, startingBalance, savedAt: new Date().toISOString() })
     });
   } catch (e) { console.error(e); }
 }
@@ -529,6 +612,7 @@ async function restoreFromCloud() {
     if (typeof parsed.startingBalance === 'number') saveStartingBalance(parsed.startingBalance);
     transactions = parsed.transactions || [];
     if (parsed.customCategories) customCategories = parsed.customCategories;
+    if (parsed.categoryIcons) { categoryIcons = { ...DEFAULT_CATEGORY_ICONS, ...parsed.categoryIcons }; saveCategoryIcons(); }
     saveData(); saveCategories(); render();
     showToast('✅ Дані повністю відновлено з хмари!');
   } catch (e) { showToast('❌ Не вдалося завантажити дані з хмари'); }
@@ -550,10 +634,17 @@ async function saveTelegramConfig(cfg) {
   } catch (e) { console.error(e); }
 }
 
+function scheduleTelegramSync() {
+  if (telegramConfig && telegramConfig.token && telegramConfig.chatId) {
+    clearTimeout(tgSyncTimer);
+    tgSyncTimer = setTimeout(telegramSyncNow, 2000);
+  }
+}
+
 async function telegramSyncNow() {
   if (!telegramConfig || !telegramConfig.token || !telegramConfig.chatId) return;
   try {
-    const payload = JSON.stringify({ transactions, customCategories, startingBalance, savedAt: new Date().toISOString() }, null, 2);
+    const payload = JSON.stringify({ transactions, customCategories, categoryIcons, startingBalance, savedAt: new Date().toISOString() }, null, 2);
     const blob = new Blob([payload], { type: 'application/json' });
     const form = new FormData();
     form.append('chat_id', telegramConfig.chatId);
@@ -581,7 +672,7 @@ async function setupTelegram() {
   const token = prompt('Встав токен бота:', telegramConfig?.token || ''); if (token === null) return;
   const chatId = prompt('Встав свій chat_id:', telegramConfig?.chatId || ''); if (chatId === null) return;
   if (!token.trim() || !chatId.trim()) {
-    await saveTelegramConfig(null); showToast('✈️ Telegram-бекап вимкнено'); render(); return;
+    await saveTelegramConfig(null); showToast('Telegram-бекап вимкнено'); render(); return;
   }
   await saveTelegramConfig({ token: token.trim(), chatId: chatId.trim(), lastMessageId: telegramConfig?.lastMessageId || null });
   showToast('✅ Telegram-бекап успішно увімкнено!'); render(); telegramSyncNow();
@@ -632,8 +723,52 @@ function updateTransaction(id, updatedFields) {
   saveData(); render();
 }
 
-function deleteTransaction(id) {
+function deleteTransaction(id, skipConfirm = false) {
+  const target = transactions.find(t => t.id === id);
+  if (!target) return false;
+
+  const isPending = target.status === 'pending';
+  const sign = target.type === 'income' ? '+' : '−';
+  const label = `${target.category}: ${sign}${fmt(target.amount)} грн (${target.date})`;
+
+  // Перевірка: якщо це частково підтверджена операція і очікуваний запис ще існує
+  let returnToPending = false;
+  let parentPending = null;
+  if (target.parentPendingId) {
+    parentPending = transactions.find(t => t.id === target.parentPendingId && t.status === 'pending');
+    if (parentPending) {
+      returnToPending = true;
+    }
+  }
+
+  if (!skipConfirm) {
+    if (returnToPending) {
+      if (!confirm(`Видалити операцію «${label}»?\n\nСума ${fmt(target.amount)} грн буде автоматично повернута назад у очікувану операцію «${parentPending.category}»!`)) {
+        return false;
+      }
+    } else {
+      const q = isPending 
+        ? `Видалити очікувану операцію «${label}»?` 
+        : `Ви дійсно хочете видалити операцію «${label}»?`;
+      if (!confirm(q)) {
+        return false;
+      }
+    }
+  }
+
   let proposedTx = transactions.filter(t => t.id !== id);
+  if (returnToPending && parentPending) {
+    proposedTx = proposedTx.map(t => {
+      if (t.id === parentPending.id) {
+        return {
+          ...t,
+          amount: Math.round((t.amount + target.amount) * 100) / 100
+        };
+      }
+      return t;
+    });
+  }
+
   const sim = validateSimulatedState(proposedTx);
   if (sim.savings < 0) {
     showToast(`❌ Неможливо видалити: скарбничка піде в мінус (${fmt(sim.savings)} грн)`);
@@ -643,8 +778,15 @@ function deleteTransaction(id) {
     showToast(`❌ Неможливо видалити: гаманець піде в мінус (${fmt(sim.wallet)} грн)`);
     return false;
   }
+
   transactions = proposedTx;
-  saveData(); render(); showToast('🗑️ Запис успішно видалено!');
+  saveData(); 
+  render();
+  if (returnToPending) {
+    showToast(`🗑️ Видалено! ${fmt(target.amount)} грн повернено в очікувані`);
+  } else {
+    showToast('🗑️ Запис успішно видалено!');
+  }
   return true;
 }
 
@@ -664,14 +806,6 @@ function forceAppUpdate() {
     });
   } else window.location.reload(true);
 }
-
-const CATEGORY_ICONS = {
-  'Бізнес': '🏢', 'Зарплата': '💼', 'Фріланс': '💻', 'Інші доходи': '💵',
-  'Квартира': '🏠', 'Їжа': '🍽️', 'Транспорт': '🚗', 'Парковка': '🅿️', 'Повернення парковки': '↩️', 'Комунальні': '💡',
-  'Розваги': '🎬', 'Здоровʼя': '💊', 'Інше': '📦', 'Заощадження': '🏦'
-};
-function iconFor(cat) { return CATEGORY_ICONS[cat] || '📌'; }
-
 
 function getParkingStats() {
   const confirmed = transactions.filter(t => t.status !== 'pending');
@@ -754,11 +888,22 @@ function selectCategory(btn, value) {
   document.querySelectorAll('#chip-grid .chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
   const hidden = document.getElementById('category-hidden');
+  const customBox = document.getElementById('custom-cat-box');
   const customInput = document.getElementById('custom-category-input');
+  const iconBar = document.getElementById('cat-icon-edit-bar');
+  const currentIconSpan = document.getElementById('current-cat-icon');
+  
   if (value === '__custom__') {
-    hidden.value = '__custom__'; customInput.style.display = 'block'; customInput.required = true; customInput.focus();
+    hidden.value = '__custom__'; 
+    if (customBox) customBox.style.display = 'block'; 
+    if (customInput) { customInput.required = true; customInput.focus(); }
+    if (iconBar) iconBar.style.display = 'none';
   } else {
-    hidden.value = value; customInput.style.display = 'none'; customInput.required = false;
+    hidden.value = value; 
+    if (customBox) customBox.style.display = 'none'; 
+    if (customInput) customInput.required = false;
+    if (iconBar) iconBar.style.display = 'flex';
+    if (currentIconSpan) currentIconSpan.textContent = iconFor(value);
   }
 }
 
@@ -779,7 +924,6 @@ function attachModalListeners() {
   const customBtn = document.getElementById('chip-custom-btn');
   if (customBtn) customBtn.addEventListener('click', () => selectCategory(customBtn, '__custom__'));
 }
-
 
 function updatePartialHint(val, total) {
   const hint = document.getElementById('partial-hint');
@@ -861,6 +1005,10 @@ function submitModal(e) {
   const currentCats = customCategories[modal.type] || [];
   if (!currentCats.some(c => c.toLowerCase() === category.toLowerCase())) {
     customCategories[modal.type] = [...currentCats, category]; saveCategories();
+    if (form['custom-cat-icon']) {
+      categoryIcons[category] = form['custom-cat-icon'].value || '📌';
+      saveCategoryIcons();
+    }
   } else {
     category = currentCats.find(c => c.toLowerCase() === category.toLowerCase()) || category;
   }
@@ -873,13 +1021,11 @@ function submitModal(e) {
     showToast('✅ Зміни успішно збережено!');
   } else if (isConfirm) {
     if (isPartialConfirm) {
-      // 1. Оновлюємо очікувану операцію залишковою сумою (залишається в очікуваних)
       updateTransaction(modal.tx.id, {
         amount: remainingAmount,
         category: category,
         comment: comment || modal.tx.comment || ''
       });
-      // 2. Додаємо підтверджену операцію на фактично отриману/сплачену частину
       const partLabel = comment ? `${comment} (частина)` : (modal.tx.comment ? `${modal.tx.comment} (частина)` : `Частина очікуваної суми`);
       addTransaction({
         type: modal.tx.type,
@@ -890,7 +1036,8 @@ function submitModal(e) {
         confirmedAt: dateStr,
         comment: partLabel,
         isParking: isParking,
-        isParkingRefund: isParkingRefund
+        isParkingRefund: isParkingRefund,
+        parentPendingId: modal.tx.id
       });
       showToast(`✅ Зараховано ${fmt(amount)} грн! Залишок ${fmt(remainingAmount)} грн чекає в очікуваних ⏳`);
     } else {
@@ -1012,7 +1159,6 @@ function render() {
         </div>
       ` : ''}
     </div>
-
   `;
 
   if (monthPending.length > 0) {
@@ -1053,7 +1199,8 @@ function render() {
   `;
   htmlStr += recentTx.length ? recentTx.map(t => {
     const isPending = t.status === 'pending'; const sign = isPending ? '⏳ ' : (t.type === 'income' ? '+' : t.type === 'expense' ? '−' : t.type === 'save' ? '🏦 ' : '↩ '); const amtClass = isPending ? 'pending' : (t.type === 'income' ? 'income' : t.type === 'expense' ? 'expense' : '');
-    return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} ${t.comment ? `<span style="font-size:12px;color:var(--text-secondary)">(${escapeHtml(t.comment)})</span>` : ''}</div><div class="tx-date">${escapeHtml(t.date)} ${t.isParking ? '• <span style="color:var(--accent)">🅿️ парковка</span>' : (t.isParkingRefund ? '• <span style="color:var(--income)">↩️ повернення</span>' : '')} ${isPending ? '• <i>не зараховано</i>' : ''}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
+    const extraTag = t.isParking ? ' • <span style="color:var(--accent)">🅿️ парковка</span>' : (t.isParkingRefund ? ' • <span style="color:var(--income)">↩️ повернення</span>' : '');
+    return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} ${t.comment ? `<span style="font-size:12px;color:var(--text-secondary)">(${escapeHtml(t.comment)})</span>` : ''}</div><div class="tx-date">${escapeHtml(t.date)}${extraTag} ${isPending ? '• <i>не зараховано</i>' : ''}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
   }).join('') : '<div class="empty-state">Немає операцій у цьому місяці</div>';
   htmlStr += `
       </div>
@@ -1070,8 +1217,8 @@ function render() {
       <button class="backup-btn" onclick="restoreFromCloud()">☁️⬇ З хмари</button>
     </div>
     <div class="backup-row">
-      <button class="backup-btn" onclick="setupTelegram()">✈️ ${telegramConfig ? 'Telegram підключено' : 'Підключити Telegram'}</button>
-      <button class="backup-btn" onclick="telegramSyncNow(); showToast('✈️ Відправлено в Telegram')">✈️⬆ Надіслати зараз</button>
+      <button class="backup-btn" onclick="setupTelegram()">${TG_ICON_SVG}${telegramConfig ? 'Telegram підключено' : 'Підключити Telegram'}</button>
+      <button class="backup-btn" onclick="telegramSyncNow(); showToast('Відправлено в Telegram')">${TG_ICON_SVG} Надіслати зараз</button>
     </div>
     <div class="backup-row">
       <button class="backup-btn" onclick="forceAppUpdate()" style="color: var(--expense)">🔄 Оновити додаток (Скинути кеш)</button>
@@ -1092,7 +1239,7 @@ function render() {
 }
 
 function exportData() {
-  const payload = { transactions, customCategories, startingBalance };
+  const payload = { transactions, customCategories, categoryIcons, startingBalance };
   const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a'); a.href = url; a.download = `finance-backup-${toLocalDateString(new Date())}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -1115,6 +1262,10 @@ function importData(event) {
         customCategories = parsed.customCategories;
         saveCategories();
       }
+      if (parsed.categoryIcons) {
+        categoryIcons = { ...DEFAULT_CATEGORY_ICONS, ...parsed.categoryIcons };
+        saveCategoryIcons();
+      }
 
       render();
       showToast('✅ Дані успішно відновлено начисто!');
@@ -1124,6 +1275,38 @@ function importData(event) {
 }
 
 function renderModal() {
+  if (modal.mode === 'icon_picker') {
+    const targetCat = modal.category;
+    const isCustom = targetCat === '__custom__';
+    const displayTitle = isCustom ? 'Оберіть іконку для нової категорії' : `Оберіть іконку для «${targetCat}»`;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-height:85vh; overflow-y:auto;">
+        <h3 class="sheet-title" style="font-size:17px; margin-bottom:12px;">${escapeHtml(displayTitle)}</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Натисніть на бажану іконку або введіть свій емодзі нижче:</p>
+        <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; margin-bottom:18px;">
+          ${PRESET_ICONS.map(ic => `
+            <button type="button" class="chip" onclick="${isCustom ? `pickCustomIcon('${ic}')` : `selectIconForCategory('${escapeHtml(targetCat)}', '${ic}')`}" style="font-size:22px; padding:10px 0; text-align:center; display:flex; align-items:center; justify-content:center;">
+              ${ic}
+            </button>
+          `).join('')}
+        </div>
+        <form onsubmit="${isCustom ? 'submitCustomNewIcon(event)' : `submitCustomIcon(event, '${escapeHtml(targetCat)}')`}">
+          <div class="field">
+            <label>Або свій емодзі з клавіатури</label>
+            <div style="display:flex; gap:8px;">
+              <input name="custom-icon-input" type="text" placeholder="Будь-який емодзі 🎯" style="font-size:18px; flex:1;" required maxlength="4">
+              <button type="submit" class="btn btn-confirm edit" style="flex:0.6; padding:10px;">Задати</button>
+            </div>
+          </div>
+          <div class="sheet-actions" style="margin-top:14px;">
+            <button type="button" class="btn btn-cancel" onclick="closeIconPicker()">Назад</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
   const isConfirm = modal.mode === 'confirm'; const isEdit = modal.mode === 'edit'; const isCreate = modal.mode === 'create';
   let title = modal.title || 'Операція';
   if (!modal.title) {
@@ -1159,6 +1342,7 @@ function renderModal() {
           <input name="tx-comment" type="text" value="${escapeHtml(currentComment)}" placeholder="Наприклад: Паркінг ТРЦ, повернення від колеги">
         </div>
   `;
+
   if (modal.type === 'expense') {
     modalHtml += `
       <div class="field">
@@ -1169,6 +1353,7 @@ function renderModal() {
       </div>
     `;
   }
+
   if (isCreate && (modal.type === 'income' || modal.type === 'expense')) {
     modalHtml += `<div class="field"><label class="field-checkbox"><input type="checkbox" name="is-pending"><span>Запланована операція (ще не проведено)</span></label></div>`;
   }
@@ -1186,13 +1371,25 @@ function renderModal() {
   modalHtml += `
             <button type="button" class="chip" id="chip-custom-btn">✏️ Своя</button>
           </div>
-          <input name="custom-category" id="custom-category-input" type="text" placeholder="Введіть назву категорії" style="display:none; margin-top:10px;">
+          <div id="custom-cat-box" style="display:none; margin-top:10px;">
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="chip" id="custom-cat-icon-btn" onclick="openIconPicker('__custom__')" style="font-size:18px; padding:10px 14px;">📌</button>
+              <input type="hidden" name="custom-cat-icon" id="custom-cat-icon-hidden" value="📌">
+              <input name="custom-category" id="custom-category-input" type="text" placeholder="Введіть назву категорії" style="flex:1;">
+            </div>
+          </div>
+          <div id="cat-icon-edit-bar" style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; background:var(--bg-elevated-2); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--stroke);">
+            <span style="font-size:13px; color:var(--text-secondary);">Іконка категорії:</span>
+            <button type="button" class="chip" id="change-cat-icon-btn" onclick="openIconPicker(document.getElementById('category-hidden').value)" style="padding:6px 12px; font-size:13px;">
+              <span id="current-cat-icon">${iconFor(selectedCat)}</span> Змінити іконку
+            </button>
+          </div>
         </div>
         <div class="sheet-actions">
           <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
   `;
   if (isEdit) {
-    modalHtml += `<button type="button" class="btn btn-danger" onclick="if(confirm('Видалити цей запис?')){ deleteTransaction('${tx.id}'); closeModal(); }">Видалити</button>`;
+    modalHtml += `<button type="button" class="btn btn-danger" onclick="if(deleteTransaction('${tx.id}')){ closeModal(); }">Видалити</button>`;
   }
   modalHtml += `
           <button type="submit" class="btn btn-confirm ${isConfirm ? (modal.tx.type === 'income' ? 'income' : 'expense') : (isEdit ? 'edit' : modal.type)}">${isConfirm ? 'Зарахувати' : (isEdit ? 'Зберегти' : 'Додати')}</button>
