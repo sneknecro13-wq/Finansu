@@ -441,6 +441,7 @@ const PRESET_ICONS = [
 
 const INVEST_TYPES = [
   { id: 'tokens', label: 'Токени / Крипта', icon: '🪙', presets: ['BTC', 'ETH', 'TON', 'SOL', 'USDT', 'SUI'] },
+  { id: 'allocation', label: 'Алокація / Pre-market', icon: '🎯', presets: ['Anthropic (ANTx)', 'SpaceX', 'OpenAI', 'Monad'] },
   { id: 'stocks', label: 'Акції / ETF', icon: '📈', presets: ['S&P 500', 'AAPL', 'NVDA', 'TSLA', 'MSFT'] },
   { id: 'bonds', label: 'ОВДП / Облігації', icon: '📜', presets: ['ОВДП Грн', 'ОВДП USD', 'Військові ОВДП'] },
   { id: 'currency', label: 'Валюта', icon: '💵', presets: ['USD', 'EUR', 'PLN'] },
@@ -1084,6 +1085,270 @@ function toggleParkingHistory() {
 }
 
 /* ================== ІНВЕСТИЦІЇ ================== */
+
+function parseQtyNum(qStr) {
+  if (!qStr) return NaN;
+  const m = String(qStr).replace(',', '.').match(/[0-9]+(?:\.[0-9]+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+}
+
+function getDuplicateAssetGroups() {
+  const map = {};
+  investAssets.forEach(a => {
+    const k = (a.assetType || 'tokens') + '::' + (a.name || '').trim().toLowerCase();
+    if (!map[k]) map[k] = [];
+    map[k].push(a);
+  });
+  return Object.values(map).filter(arr => arr.length > 1);
+}
+
+function mergeDuplicateAssets() {
+  const groups = getDuplicateAssetGroups();
+  if (!groups.length) return;
+  const newAssets = [];
+  const processedIds = new Set();
+
+  for (const a of investAssets) {
+    if (processedIds.has(a.id)) continue;
+    const k = (a.assetType || 'tokens') + '::' + (a.name || '').trim().toLowerCase();
+    const matches = investAssets.filter(x => ((x.assetType || 'tokens') + '::' + (x.name || '').trim().toLowerCase()) === k);
+    if (matches.length > 1) {
+      let totalCost = 0;
+      let totalCur = 0;
+      let totalQty = 0;
+      let hasQty = true;
+      const notes = [];
+      matches.forEach(m => {
+        processedIds.add(m.id);
+        totalCost += (m.investedAmount || 0);
+        totalCur += (m.currentValue ?? m.investedAmount ?? 0);
+        const qn = parseQtyNum(m.quantity);
+        if (!isNaN(qn)) totalQty += qn;
+        else if (m.quantity) hasQty = false;
+        if (m.note) notes.push(m.note);
+      });
+      const first = matches[0];
+      newAssets.push({
+        ...first,
+        investedAmount: Math.round(totalCost * 100) / 100,
+        currentValue: Math.round(totalCur * 100) / 100,
+        quantity: hasQty && totalQty > 0 ? String(Math.round(totalQty * 1000000) / 1000000) : first.quantity,
+        note: [...new Set(notes)].join('; ')
+      });
+    } else {
+      processedIds.add(a.id);
+      newAssets.push(a);
+    }
+  }
+  investAssets = newAssets;
+  saveInvestments();
+  render();
+  showToast('🔗 Однакові активи успішно обʼєднано!');
+}
+
+function openSwapAssetModal(assetId) {
+  const asset = investAssets.find(a => a.id === assetId);
+  if (!asset) return;
+  modal = {
+    mode: 'invest_swap',
+    asset,
+    selectedType: 'allocation'
+  };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('swap-target-name');
+    if (input) input.focus();
+  }, 100);
+}
+
+function selectSwapTargetType(typeId) {
+  if (!modal || modal.mode !== 'invest_swap') return;
+  modal.selectedType = typeId;
+  render();
+}
+
+function fillSwapPreset(name) {
+  const input = document.getElementById('swap-target-name');
+  if (input) input.value = name;
+}
+
+function submitSwapAsset(e) {
+  e.preventDefault();
+  const form = e.target;
+  const src = modal.asset;
+  const targetType = modal.selectedType || 'allocation';
+  const targetName = form['target-name'].value.trim();
+  const targetQty = form['target-qty'].value.trim();
+  const isPendingAlloc = form['is-alloc-pending'] ? form['is-alloc-pending'].checked : false;
+  const dateStr = form['swap-date'].value || toLocalDateString(new Date());
+  const note = form['swap-note'].value.trim();
+
+  if (!targetName) { showToast('❌ Введіть назву цільового активу'); return; }
+
+  const srcQtyNum = parseQtyNum(src.quantity);
+  let spendCost = src.investedAmount;
+  let spendCur = src.currentValue ?? src.investedAmount;
+  let remainQtyStr = '';
+  let fullySpent = false;
+
+  if (!isNaN(srcQtyNum) && srcQtyNum > 0 && form['spend-qty']) {
+    const rawSpendQty = form['spend-qty'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+    const spendQty = parseFloat(rawSpendQty);
+    if (!spendQty || spendQty <= 0 || spendQty > srcQtyNum + 0.000001) {
+      showToast(`❌ Вкажіть коректну кількість (від 0 до ${srcQtyNum})`);
+      return;
+    }
+    const ratio = Math.min(1, spendQty / srcQtyNum);
+    if (ratio >= 0.9999) {
+      fullySpent = true;
+    } else {
+      spendCost = Math.round(src.investedAmount * ratio * 100) / 100;
+      spendCur = Math.round((src.currentValue ?? src.investedAmount) * ratio * 100) / 100;
+      const rem = Math.round((srcQtyNum - spendQty) * 1000000) / 1000000;
+      remainQtyStr = String(rem);
+    }
+  } else {
+    const rawSpendUah = form['spend-uah'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+    const spendUah = parseFloat(rawSpendUah);
+    if (!spendUah || spendUah <= 0 || spendUah > src.investedAmount + 0.01) {
+      showToast(`❌ Вкажіть коректну суму (до ${fmt(src.investedAmount)} грн)`);
+      return;
+    }
+    if (spendUah >= src.investedAmount - 0.01) {
+      fullySpent = true;
+    } else {
+      const ratio = spendUah / src.investedAmount;
+      spendCost = spendUah;
+      spendCur = Math.round((src.currentValue ?? src.investedAmount) * ratio * 100) / 100;
+    }
+  }
+
+  // Update or remove source asset
+  if (fullySpent) {
+    investAssets = investAssets.filter(a => a.id !== src.id);
+  } else {
+    investAssets = investAssets.map(a => a.id === src.id ? {
+      ...a,
+      investedAmount: Math.max(0, Math.round((a.investedAmount - spendCost) * 100) / 100),
+      currentValue: Math.max(0, Math.round(((a.currentValue ?? a.investedAmount) - spendCur) * 100) / 100),
+      quantity: remainQtyStr || a.quantity
+    } : a);
+  }
+
+  // Create target asset
+  investAssets.unshift({
+    id: 'asset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+    assetType: targetType,
+    name: targetName,
+    quantity: targetQty,
+    investedAmount: spendCost,
+    currentValue: spendCur,
+    date: dateStr,
+    note: note || `З ${src.name}`,
+    isAllocPending: isPendingAlloc,
+    sourceAssetName: src.name
+  });
+
+  // Record swap in investHistory (doesn't alter investCash!)
+  investHistory.unshift({
+    id: 'ih_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+    action: 'swap',
+    assetName: `${src.name} → ${targetName}`,
+    assetType: targetType,
+    amount: spendCost,
+    pnl: 0,
+    date: dateStr,
+    note: targetQty ? `Отримано: ${targetQty}` : ''
+  });
+
+  saveInvestments();
+  closeModal();
+  showToast(`🎯 Переведено ${fmt(spendCost)} грн з ${src.name} в ${targetName}!`);
+}
+
+function openSettleAllocModal(assetId) {
+  const asset = investAssets.find(a => a.id === assetId);
+  if (!asset) return;
+  modal = { mode: 'invest_settle_alloc', asset };
+  render();
+}
+
+function submitSettleAlloc(e) {
+  e.preventDefault();
+  const form = e.target;
+  const a = modal.asset;
+  const actionType = form['alloc-action'].value; // 'confirm' | 'cancel'
+  const dateStr = toLocalDateString(new Date());
+
+  if (actionType === 'cancel') {
+    const backName = a.sourceAssetName || 'USDT';
+    const backQty = form['refund-usdt-qty'] ? form['refund-usdt-qty'].value.trim() : '';
+    investAssets = investAssets.filter(x => x.id !== a.id);
+    investAssets.unshift({
+      id: 'asset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+      assetType: 'tokens',
+      name: backName,
+      quantity: backQty,
+      investedAmount: a.investedAmount,
+      currentValue: a.currentValue ?? a.investedAmount,
+      date: dateStr,
+      note: `Повернення заявки ${a.name}`
+    });
+    investHistory.unshift({
+      id: 'ih_' + Date.now(),
+      action: 'swap',
+      assetName: `${a.name} ↩ ${backName}`,
+      assetType: 'tokens',
+      amount: a.investedAmount,
+      pnl: 0,
+      date: dateStr,
+      note: 'Заявку скасовано'
+    });
+    saveInvestments();
+    closeModal();
+    showToast(`↩️ Заявку скасовано, ${fmt(a.investedAmount)} грн повернуто в ${backName}!`);
+    return;
+  }
+
+  // Confirm allocation (possibly with partial refund in USDT)
+  const finalQty = form['final-qty'].value.trim();
+  const rawRefundUah = form['refund-uah'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const refundUah = parseFloat(rawRefundUah) || 0;
+  const refundQty = form['refund-usdt-qty'] ? form['refund-usdt-qty'].value.trim() : '';
+
+  if (refundUah > a.investedAmount) {
+    showToast('❌ Сума повернення не може перевищувати вкладене');
+    return;
+  }
+
+  const newCost = Math.round((a.investedAmount - refundUah) * 100) / 100;
+  investAssets = investAssets.map(x => x.id === a.id ? {
+    ...x,
+    quantity: finalQty || x.quantity,
+    investedAmount: newCost,
+    currentValue: newCost,
+    isAllocPending: false
+  } : x);
+
+  if (refundUah > 0) {
+    const backName = a.sourceAssetName || 'USDT';
+    investAssets.unshift({
+      id: 'asset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+      assetType: 'tokens',
+      name: backName,
+      quantity: refundQty,
+      investedAmount: refundUah,
+      currentValue: refundUah,
+      date: dateStr,
+      note: `Решта з алокації ${a.name}`
+    });
+  }
+
+  saveInvestments();
+  closeModal();
+  showToast(`✅ Алокацію «${a.name}» підтверджено!`);
+}
+
 function openInvestTransferModal(dir) {
   // dir: 'invest_in' | 'invest_out'
   modal = {
@@ -1215,18 +1480,35 @@ function submitBuyAsset(e) {
     saveData();
   }
 
-  const newAsset = {
-    id: 'asset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
-    assetType,
-    name,
-    quantity,
-    investedAmount: amount,
-    currentValue: amount,
-    date: dateStr,
-    note
-  };
+  const mergeIfExists = form['merge-existing'] ? form['merge-existing'].checked : false;
+  const existingAsset = mergeIfExists ? investAssets.find(a => (a.assetType || 'tokens') === assetType && (a.name || '').trim().toLowerCase() === name.toLowerCase()) : null;
 
-  investAssets.unshift(newAsset);
+  if (existingAsset) {
+    const oldQ = parseQtyNum(existingAsset.quantity);
+    const addQ = parseQtyNum(quantity);
+    const combinedQty = (!isNaN(oldQ) && !isNaN(addQ)) ? String(Math.round((oldQ + addQ) * 1000000) / 1000000) : (quantity || existingAsset.quantity);
+    investAssets = investAssets.map(a => a.id === existingAsset.id ? {
+      ...a,
+      investedAmount: Math.round(((a.investedAmount || 0) + amount) * 100) / 100,
+      currentValue: Math.round(((a.currentValue ?? a.investedAmount ?? 0) + amount) * 100) / 100,
+      quantity: combinedQty,
+      date: dateStr,
+      note: note ? (a.note ? a.note + '; ' + note : note) : a.note
+    } : a);
+  } else {
+    const newAsset = {
+      id: 'asset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+      assetType,
+      name,
+      quantity,
+      investedAmount: amount,
+      currentValue: amount,
+      date: dateStr,
+      note,
+      isAllocPending: assetType === 'allocation'
+    };
+    investAssets.unshift(newAsset);
+  }
   investHistory = proposedHistory;
   saveInvestments();
   closeModal();
@@ -1628,7 +1910,10 @@ function renderInvestTab(simState) {
     </button>
 
     <section class="list-section">
-      <h2 class="section-title">Мій портфель</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 class="section-title" style="margin:0;">Мій портфель</h2>
+        ${getDuplicateAssetGroups().length ? `<button class="backup-btn" style="flex:0; padding:6px 10px; font-size:12px; color:var(--accent); border-color:var(--accent);" onclick="mergeDuplicateAssets()">🔗 Обʼєднати однакові</button>` : ''}
+      </div>
   `;
 
   if (investAssets.length === 0) {
@@ -1647,7 +1932,7 @@ function renderInvestTab(simState) {
           <div class="asset-top">
             <div>
               <div class="asset-name">${tInfo.icon} ${escapeHtml(a.name)} ${a.quantity ? `<span style="font-size:13px; color:var(--accent); font-weight:600">(${escapeHtml(a.quantity)})</span>` : ''}</div>
-              <div class="asset-sub">${escapeHtml(tInfo.label)} • Вкладено: ${fmt(cost)} грн • ${escapeHtml(a.date)}</div>
+              <div class="asset-sub">${escapeHtml(tInfo.label)} ${a.isAllocPending ? '• <span style="color:var(--accent)">⏳ Заявка подана</span>' : ''} • Вкладено: ${fmt(cost)} грн • ${escapeHtml(a.date)}</div>
               ${a.note ? `<div class="asset-sub" style="color:var(--text-tertiary)">${escapeHtml(a.note)}</div>` : ''}
             </div>
             <div>
@@ -1656,6 +1941,10 @@ function renderInvestTab(simState) {
             </div>
           </div>
           <div class="asset-btns">
+            ${a.isAllocPending
+              ? `<button class="asset-btn" style="background:var(--accent-dim); color:var(--accent); border-color:var(--accent);" onclick="openSettleAllocModal('${a.id}')">✅ Підсумки</button>`
+              : `<button class="asset-btn" onclick="openSwapAssetModal('${a.id}')">🔄 Обмін</button>`
+            }
             <button class="asset-btn" onclick="openUpdateAssetValueModal('${a.id}')">📊 Оцінка</button>
             <button class="asset-btn sell" onclick="openSellAssetModal('${a.id}')">💰 Продати</button>
             <button class="asset-btn del" onclick="openDeleteAssetModal('${a.id}')" title="Видалити">🗑️</button>
@@ -1701,15 +1990,19 @@ function renderInvestTab(simState) {
       html += investHistory.map(h => {
         const tInfo = investTypeInfo(h.assetType);
         const isBuy = h.action === 'buy';
-        const pnlBadge = !isBuy && h.pnl !== 0 ? ` <span style="font-size:11.5px; color:${h.pnl >= 0 ? 'var(--income)' : 'var(--expense)'}">(${h.pnl >= 0 ? '+' : ''}${fmt(h.pnl)} грн)</span>` : '';
+        const isSwap = h.action === 'swap';
+        const actionLabel = isSwap ? 'Обмін' : (isBuy ? 'Купівля' : 'Продаж');
+        const amtCls = isSwap ? 'pending' : (isBuy ? 'expense' : 'income');
+        const amtSign = isSwap ? '🔄 ' : (isBuy ? '−' : '+');
+        const pnlBadge = !isBuy && !isSwap && h.pnl !== 0 ? ` <span style="font-size:11.5px; color:${h.pnl >= 0 ? 'var(--income)' : 'var(--expense)'}">(${h.pnl >= 0 ? '+' : ''}${fmt(h.pnl)} грн)</span>` : '';
         return `
           <div class="tx-row" style="cursor:default;">
             <div class="tx-meta">
-              <div class="tx-cat">${tInfo.icon} ${isBuy ? 'Купівля' : 'Продаж'}: ${escapeHtml(h.assetName)}${pnlBadge}</div>
+              <div class="tx-cat">${tInfo.icon} ${actionLabel}: ${escapeHtml(h.assetName)}${pnlBadge}</div>
               <div class="tx-date">${escapeHtml(h.date)} ${h.note ? `• ${escapeHtml(h.note)}` : ''}</div>
             </div>
             <div class="tx-right">
-              <div class="list-item-amount ${isBuy ? 'expense' : 'income'}">${isBuy ? '−' : '+'}${fmt(h.amount)} грн</div>
+              <div class="list-item-amount ${amtCls}">${amtSign}${fmt(h.amount)} грн</div>
             </div>
           </div>
         `;
@@ -2068,6 +2361,120 @@ function renderModal() {
     </div>`;
   }
 
+  if (modal.mode === 'invest_swap') {
+    const a = modal.asset;
+    const tInfo = investTypeInfo(modal.selectedType);
+    const srcQtyNum = parseQtyNum(a.quantity);
+    const hasNumQty = !isNaN(srcQtyNum) && srcQtyNum > 0;
+
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h3 class="sheet-title">🔄 Обмін / В алокацію з ${escapeHtml(a.name)}</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Доступно: <b>${hasNumQty ? `${srcQtyNum} ${escapeHtml(a.name)}` : `${fmt(a.investedAmount)} грн`}</b> (собівартість: ${fmt(a.investedAmount)} грн).
+        </p>
+        <form onsubmit="submitSwapAsset(event)">
+          ${hasNumQty ? `
+          <div class="field">
+            <label>Скільки ${escapeHtml(a.name)} витрачаєте (напр. 457.30)</label>
+            <div style="display:flex; gap:8px;">
+              <input id="swap-spend-qty" name="spend-qty" type="text" inputmode="decimal" value="${srcQtyNum}" required autocomplete="off" style="flex:1;">
+              <button type="button" class="chip" onclick="document.getElementById('swap-spend-qty').value='${srcQtyNum}'">Макс</button>
+            </div>
+          </div>
+          ` : `
+          <div class="field">
+            <label>Яку частку собівартості перевести, грн</label>
+            <input name="spend-uah" type="text" inputmode="decimal" value="${a.investedAmount}" required autocomplete="off">
+          </div>
+          `}
+          <div class="field">
+            <label>Куди переводите</label>
+            <div class="chip-grid">
+              ${INVEST_TYPES.map(t => `
+                <button type="button" class="chip ${t.id === modal.selectedType ? 'active' : ''}" onclick="selectSwapTargetType('${t.id}')">
+                  ${t.icon} ${escapeHtml(t.label)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="field">
+            <label>Назва активу / проєкту</label>
+            <input id="swap-target-name" name="target-name" type="text" placeholder="Наприклад: ${tInfo.presets[0]}" required autocomplete="off">
+            <div class="chip-grid" style="margin-top:8px;">
+              ${tInfo.presets.map(p => `<button type="button" class="chip" style="padding:5px 10px; font-size:12px;" onclick="fillSwapPreset('${escapeHtml(p)}')">${escapeHtml(p)}</button>`).join('')}
+            </div>
+          </div>
+          <div class="field">
+            <label>Очікувана кількість (необовʼязково)</label>
+            <input name="target-qty" type="text" placeholder="Наприклад: 5.569 ANTx">
+          </div>
+          ${modal.selectedType === 'allocation' ? `
+          <div class="field">
+            <label class="field-checkbox">
+              <input type="checkbox" name="is-alloc-pending" checked>
+              <span>⏳ Заявка подана (ще очікує розподілу/лістингу)</span>
+            </label>
+          </div>
+          ` : ''}
+          <div class="field">
+            <label>Дата</label>
+            <input name="swap-date" type="date" value="${toLocalDateString(new Date())}" required>
+          </div>
+          <div class="field">
+            <label>Примітка</label>
+            <input name="swap-note" type="text" placeholder="Комісія 5%, пул тощо">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm take">Перевести</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'invest_settle_alloc') {
+    const a = modal.asset;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h3 class="sheet-title">🎯 Підсумки алокації: ${escapeHtml(a.name)}</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Подано на суму: <b>${fmt(a.investedAmount)} грн</b>. Якщо заявку видали не повністю або скасували — решта повернеться в ${escapeHtml(a.sourceAssetName || 'USDT')}.
+        </p>
+        <form onsubmit="submitSettleAlloc(event)">
+          <div class="field">
+            <label>Результат заявки</label>
+            <select name="alloc-action" onchange="document.getElementById('alloc-confirm-fields').style.display = this.value === 'confirm' ? 'block' : 'none'">
+              <option value="confirm">✅ Алокацію видано (підтвердити)</option>
+              <option value="cancel">↩️ Заявку скасовано (повернути все в ${escapeHtml(a.sourceAssetName || 'USDT')})</option>
+            </select>
+          </div>
+          <div id="alloc-confirm-fields">
+            <div class="field">
+              <label>Фактично отримана кількість токенів/акцій</label>
+              <input name="final-qty" type="text" value="${escapeHtml(a.quantity || '')}" placeholder="Напр: 5.56 ANTx">
+            </div>
+            <div class="field">
+              <label>Якщо частину не видали — скільки грн повернулося</label>
+              <input name="refund-uah" type="text" inputmode="decimal" value="0" placeholder="0">
+            </div>
+          </div>
+          <div class="field">
+            <label>Кількість повернених ${escapeHtml(a.sourceAssetName || 'USDT')} (якщо є)</label>
+            <input name="refund-usdt-qty" type="text" placeholder="Напр: 100 USDT">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm income">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
   if (modal.mode === 'invest_transfer') {
     const isOut = modal.dir === 'invest_out';
     const sim = validateSimulatedState(transactions);
@@ -2141,6 +2548,12 @@ function renderModal() {
             <label class="field-checkbox">
               <input type="checkbox" name="from-main-wallet" ${needMainDefault ? 'checked' : ''}>
               <span>Взяти цю суму прямо з основного гаманця (вільний інвест-кеш: ${fmt(sim.investCash)} грн)</span>
+            </label>
+          </div>
+          <div class="field">
+            <label class="field-checkbox">
+              <input type="checkbox" name="merge-existing" checked>
+              <span>🔗 Обʼєднати, якщо такий актив уже є в портфелі</span>
             </label>
           </div>
           <div class="field">
