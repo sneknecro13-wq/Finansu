@@ -250,6 +250,24 @@
   }
   @keyframes fadeUp { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
+  /* Вкладки навігації (Фінанси / Інвестиції) */
+  .tabs-bar {
+    display: flex; gap: 8px; background: var(--bg-elevated);
+    border: 1px solid var(--stroke); border-radius: var(--radius-md);
+    padding: 5px; margin-bottom: 18px;
+  }
+  .tab-btn {
+    flex: 1; padding: 10px 12px; border: none; border-radius: 11px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .tab-btn.active {
+    background: var(--bg-elevated-2); color: var(--text-primary);
+    border: 1px solid var(--stroke); box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+
   /* Віджет контролю парковки та компенсацій */
   .parking-card {
     background: linear-gradient(145deg, #1b212d 0%, #161922 100%);
@@ -306,6 +324,61 @@
   .p-hist-tag.pay { background: var(--expense-dim); color: var(--expense); }
   .p-hist-tag.refund { background: var(--income-dim); color: var(--income); }
 
+  /* Вкладка Інвестиції */
+  .invest-hero {
+    background: linear-gradient(145deg, #211f2c 0%, #171922 100%);
+    border: 1px solid #3c3a52;
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    margin-bottom: 16px;
+  }
+  .invest-total {
+    font-family: 'Sora', sans-serif; font-size: 36px; font-weight: 800;
+    letter-spacing: -0.02em; line-height: 1.1; margin: 4px 0 8px;
+  }
+  .invest-pnl-badge {
+    display: inline-block; padding: 4px 10px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif;
+  }
+  .invest-pnl-badge.pos { background: var(--income-dim); color: var(--income); }
+  .invest-pnl-badge.neg { background: var(--expense-dim); color: var(--expense); }
+  .invest-pnl-badge.flat { background: var(--bg-elevated-2); color: var(--text-secondary); }
+  .invest-actions-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+  }
+  .invest-buy-btn {
+    width: 100%; background: var(--accent-dim); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: var(--radius-md); padding: 14px;
+    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px;
+    cursor: pointer; margin-bottom: 22px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .invest-buy-btn:active { opacity: 0.85; }
+  .asset-card {
+    background: var(--bg-elevated); border: 1px solid var(--stroke);
+    border-radius: var(--radius-md); padding: 15px 16px; margin-bottom: 10px;
+  }
+  .asset-top {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;
+  }
+  .asset-name { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; }
+  .asset-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .asset-val { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; text-align: right; }
+  .asset-pnl { font-size: 12px; font-weight: 600; text-align: right; margin-top: 2px; }
+  .asset-pnl.pos { color: var(--income); }
+  .asset-pnl.neg { color: var(--expense); }
+  .asset-pnl.flat { color: var(--text-tertiary); }
+  .asset-btns {
+    display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--stroke);
+  }
+  .asset-btn {
+    flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--stroke);
+    background: var(--bg-elevated-2); color: var(--text-primary);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .asset-btn.sell { background: var(--income-dim); color: var(--income); border-color: rgba(74, 222, 138, 0.3); }
+  .asset-btn.del { flex: 0.35; color: var(--text-tertiary); }
+  .asset-btn:active { opacity: 0.8; }
+
 </style>
 </head>
 <body>
@@ -329,6 +402,8 @@ const MONTHS_UK = ['Січень','Лютий','Березень','Квітен�
 const STORAGE_KEY = 'finance-transactions-v1';
 const CATS_KEY = 'finance-custom-categories-v1';
 const CATS_ICONS_KEY = 'finance-category-icons-v1';
+const INVEST_ASSETS_KEY = 'finance-invest-assets-v1';
+const INVEST_HISTORY_KEY = 'finance-invest-history-v1';
 const BACKUP_URL_KEY = 'finance-backup-url-v1';
 const TG_KEY = 'finance-telegram-v1';
 const STARTING_BALANCE_KEY = 'finance-starting-balance-v1';
@@ -339,7 +414,9 @@ const DEFAULT_CATS = {
   income: ['Зарплата', 'Бізнес', 'Фріланс', 'Повернення парковки', 'Вишка', 'Шабашка', 'Інші доходи'],
   expense: ['Квартира', 'Їжа', 'Транспорт', 'Парковка', 'Комунальні', 'Розваги', 'Здоровʼя', 'Інше'],
   save: ['Заощадження'],
-  take: ['Заощадження']
+  take: ['Заощадження'],
+  invest_in: ['Інвестиції'],
+  invest_out: ['Інвестиції']
 };
 
 const DEFAULT_CATEGORY_ICONS = {
@@ -350,7 +427,8 @@ const DEFAULT_CATEGORY_ICONS = {
   'Вишка': '🏗️', 'Шабашка': '🛠️', 'Підробіток': '🔨', 'Пальне': '⛽',
   'АЗС': '⛽', 'Таксі': '🚖', 'Кафе': '☕', 'Одяг': '👕', 'Шопінг': '🛍️',
   'Діти': '👶', 'Тварини': '🐾', 'Техніка': '📱', 'Ремонт': '🔧',
-  'Спорт': '🏋️', 'Подарунки': '🎁', 'Звʼязок': '📶', 'Інтернет': '🌐'
+  'Спорт': '🏋️', 'Подарунки': '🎁', 'Звʼязок': '📶', 'Інтернет': '🌐',
+  'Інвестиції': '📈'
 };
 
 const PRESET_ICONS = [
@@ -359,6 +437,19 @@ const PRESET_ICONS = [
   '🏋️', '🎁', '✈️', '🏦', '🅿️', '↩️', '📦', '🍕', '🛒', '🎓',
   '💰', '🪙', '🚜', '🧰', '⚡', '📶', '🍺', '🏥', '🎯', '🔥'
 ];
+
+const INVEST_TYPES = [
+  { id: 'tokens', label: 'Токени / Крипта', icon: '🪙', presets: ['BTC', 'ETH', 'TON', 'SOL', 'USDT', 'SUI'] },
+  { id: 'stocks', label: 'Акції / ETF', icon: '📈', presets: ['S&P 500', 'AAPL', 'NVDA', 'TSLA', 'MSFT'] },
+  { id: 'bonds', label: 'ОВДП / Облігації', icon: '📜', presets: ['ОВДП Грн', 'ОВДП USD', 'Військові ОВДП'] },
+  { id: 'currency', label: 'Валюта', icon: '💵', presets: ['USD', 'EUR', 'PLN'] },
+  { id: 'deposit', label: 'Депозит', icon: '🏦', presets: ['Mono Банка', 'Приват Вклад', 'Готівка USD'] },
+  { id: 'business', label: 'Бізнес / Інше', icon: '💼', presets: ['Товар', 'Обладнання', 'Частка'] }
+];
+
+function investTypeInfo(typeId) {
+  return INVEST_TYPES.find(t => t.id === typeId) || INVEST_TYPES[0];
+}
 
 let categoryIcons = { ...DEFAULT_CATEGORY_ICONS };
 
@@ -375,8 +466,11 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+let activeTab = 'finance'; // 'finance' | 'invest'
 let transactions = [];
-let customCategories = { income: [], expense: [], save: [], take: [] };
+let customCategories = { income: [], expense: [], save: [], take: [], invest_in: ['Інвестиції'], invest_out: ['Інвестиції'] };
+let investAssets = []; // { id, assetType, name, quantity, investedAmount, currentValue, date, note }
+let investHistory = []; // { id, action: 'buy'|'sell'|'in'|'out', assetName, assetType, amount, pnl, date, note }
 let startingBalance = 0;
 let monthOffset = 0;
 let modal = null;
@@ -388,6 +482,7 @@ let syncTimer = null;
 let telegramConfig = null;
 let tgSyncTimer = null;
 let showParkingHistory = false;
+let showInvestHistory = false;
 
 function showToast(msg) {
   toast = msg;
@@ -459,6 +554,26 @@ async function loadData() {
     }
   } catch (e) { categoryIcons = { ...DEFAULT_CATEGORY_ICONS }; }
 
+  try {
+    if (window.storage) {
+      const res = await window.storage.get(INVEST_ASSETS_KEY, false);
+      investAssets = res ? JSON.parse(res.value) : [];
+    } else {
+      const raw = localStorage.getItem(INVEST_ASSETS_KEY);
+      investAssets = raw ? JSON.parse(raw) : [];
+    }
+  } catch (e) { investAssets = []; }
+
+  try {
+    if (window.storage) {
+      const res = await window.storage.get(INVEST_HISTORY_KEY, false);
+      investHistory = res ? JSON.parse(res.value) : [];
+    } else {
+      const raw = localStorage.getItem(INVEST_HISTORY_KEY);
+      investHistory = raw ? JSON.parse(raw) : [];
+    }
+  } catch (e) { investHistory = []; }
+
   let seeded = false;
   Object.keys(DEFAULT_CATS).forEach((type) => {
     const existing = customCategories[type] || [];
@@ -507,6 +622,25 @@ async function saveCategoryIcons() {
   } catch (e) { console.error(e); }
   scheduleCloudSync();
   scheduleTelegramSync();
+}
+
+async function saveInvestments() {
+  try {
+    if (window.storage) {
+      await window.storage.set(INVEST_ASSETS_KEY, JSON.stringify(investAssets), false);
+      await window.storage.set(INVEST_HISTORY_KEY, JSON.stringify(investHistory), false);
+    } else {
+      localStorage.setItem(INVEST_ASSETS_KEY, JSON.stringify(investAssets));
+      localStorage.setItem(INVEST_HISTORY_KEY, JSON.stringify(investHistory));
+    }
+  } catch (e) { console.error(e); }
+  scheduleCloudSync();
+  scheduleTelegramSync();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  render();
 }
 
 function openIconPicker(cat) {
@@ -584,7 +718,7 @@ async function cloudSyncNow() {
   try {
     await fetch(backupUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactions, customCategories, categoryIcons, startingBalance, savedAt: new Date().toISOString() })
+      body: JSON.stringify({ transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, savedAt: new Date().toISOString() })
     });
   } catch (e) { console.error(e); }
 }
@@ -613,7 +747,9 @@ async function restoreFromCloud() {
     transactions = parsed.transactions || [];
     if (parsed.customCategories) customCategories = parsed.customCategories;
     if (parsed.categoryIcons) { categoryIcons = { ...DEFAULT_CATEGORY_ICONS, ...parsed.categoryIcons }; saveCategoryIcons(); }
-    saveData(); saveCategories(); render();
+    if (Array.isArray(parsed.investAssets)) investAssets = parsed.investAssets;
+    if (Array.isArray(parsed.investHistory)) investHistory = parsed.investHistory;
+    saveData(); saveCategories(); saveInvestments(); render();
     showToast('✅ Дані повністю відновлено з хмари!');
   } catch (e) { showToast('❌ Не вдалося завантажити дані з хмари'); }
 }
@@ -644,7 +780,7 @@ function scheduleTelegramSync() {
 async function telegramSyncNow() {
   if (!telegramConfig || !telegramConfig.token || !telegramConfig.chatId) return;
   try {
-    const payload = JSON.stringify({ transactions, customCategories, categoryIcons, startingBalance, savedAt: new Date().toISOString() }, null, 2);
+    const payload = JSON.stringify({ transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, savedAt: new Date().toISOString() }, null, 2);
     const blob = new Blob([payload], { type: 'application/json' });
     const form = new FormData();
     form.append('chat_id', telegramConfig.chatId);
@@ -684,15 +820,9 @@ function setupStartingBalance() {
   if (input === null) return;
   const parsedAmount = Math.max(0, parseFloat(input.trim().replace(',', '.').replace(/[^0-9.]/g, '')) || 0);
   
-  const confirmed = transactions.filter(t => t.status !== 'pending');
-  const inc = confirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const exp = confirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const sav = confirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
-  const tak = confirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
-  
-  const newWallet = parsedAmount + inc - exp - sav + tak;
-  if (newWallet < 0) {
-    showToast(`❌ Помилка: з таким капіталом гаманець стане ${fmt(newWallet)} грн`);
+  const sim = validateSimulatedState(transactions, investAssets, investHistory, parsedAmount);
+  if (sim.wallet < 0) {
+    showToast(`❌ Помилка: з таким капіталом гаманець стане ${fmt(sim.wallet)} грн`);
     return;
   }
 
@@ -701,15 +831,22 @@ function setupStartingBalance() {
   showToast('✅ Стартовий капітал успішно оновлено!');
 }
 
-function validateSimulatedState(proposedTx) {
+function validateSimulatedState(proposedTx, proposedAssets = investAssets, proposedHistory = investHistory, customStart = startingBalance) {
   const confirmed = proposedTx.filter(t => t.status !== 'pending');
   const inc = confirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const exp = confirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const sav = confirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
   const tak = confirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
+  const invIn = confirmed.filter(t => t.type === 'invest_in').reduce((s, t) => s + t.amount, 0);
+  const invOut = confirmed.filter(t => t.type === 'invest_out').reduce((s, t) => s + t.amount, 0);
+
+  const boughtSum = proposedHistory.filter(h => h.action === 'buy').reduce((s, h) => s + h.amount, 0);
+  const soldSum = proposedHistory.filter(h => h.action === 'sell').reduce((s, h) => s + h.amount, 0);
+
   return {
     savings: sav - tak,
-    wallet: startingBalance + inc - exp - sav + tak
+    wallet: customStart + inc - exp - sav + tak - invIn + invOut,
+    investCash: invIn - invOut - boughtSum + soldSum
   };
 }
 
@@ -774,6 +911,11 @@ function executeDelete(id, returnToPending, parentPendingId) {
     closeModal();
     return;
   }
+  if (sim.investCash < 0) {
+    showToast(`❌ Неможливо видалити: вільний кеш в інвестиціях піде в мінус (${fmt(sim.investCash)} грн)`);
+    closeModal();
+    return;
+  }
 
   transactions = proposedTx;
   saveData();
@@ -818,6 +960,7 @@ function forceAppUpdate() {
   } else window.location.reload(true);
 }
 
+/* ================== ПАРКОВКА ================== */
 function getParkingStats() {
   const confirmed = transactions.filter(t => t.status !== 'pending');
   const paid = confirmed.filter(t => t.isParking).reduce((s, t) => s + t.amount, 0);
@@ -864,6 +1007,294 @@ function toggleParkingHistory() {
   render();
 }
 
+/* ================== ІНВЕСТИЦІЇ ================== */
+function openInvestTransferModal(dir) {
+  // dir: 'invest_in' | 'invest_out'
+  modal = {
+    mode: 'invest_transfer',
+    dir: dir
+  };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('invest-transfer-amount');
+    if (input) input.focus();
+  }, 100);
+}
+
+function submitInvestTransfer(e) {
+  e.preventDefault();
+  const form = e.target;
+  const raw = form.amount.value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const amount = parseFloat(raw);
+  if (!amount || amount <= 0) { showToast('❌ Введіть суму більше нуля'); return; }
+
+  const dateStr = form['tx-date'].value || toLocalDateString(new Date());
+  const comment = form.comment.value.trim();
+  const dir = modal.dir;
+
+  const tempTx = [{ id: 'temp', type: dir, amount, category: 'Інвестиції', date: dateStr, status: 'confirmed', comment }, ...transactions];
+  const sim = validateSimulatedState(tempTx);
+
+  if (sim.wallet < 0) { showToast(`❌ Недостатньо коштів у гаманці (буде ${fmt(sim.wallet)} грн)`); return; }
+  if (sim.investCash < 0) { showToast(`❌ Недостатньо вільних коштів в інвестиціях (доступно ${fmt(validateSimulatedState(transactions).investCash)} грн)`); return; }
+
+  addTransaction({
+    type: dir,
+    amount,
+    category: 'Інвестиції',
+    date: dateStr,
+    status: 'confirmed',
+    comment: comment || (dir === 'invest_in' ? 'Переказ в інвестиції' : 'Повернення з інвестицій')
+  });
+
+  closeModal();
+  showToast(dir === 'invest_in' ? `↗️ Переказано ${fmt(amount)} грн в інвестиції!` : `↙️ Повернуто ${fmt(amount)} грн у гаманець!`);
+}
+
+function openBuyAssetModal() {
+  modal = {
+    mode: 'invest_buy',
+    selectedType: 'tokens'
+  };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('asset-amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function selectAssetType(typeId) {
+  if (!modal || modal.mode !== 'invest_buy') return;
+  modal.selectedType = typeId;
+  render();
+}
+
+function fillAssetPreset(name) {
+  const input = document.getElementById('asset-name-input');
+  if (input) input.value = name;
+}
+
+function submitBuyAsset(e) {
+  e.preventDefault();
+  const form = e.target;
+  const assetType = modal.selectedType || 'tokens';
+  const name = form['asset-name'].value.trim();
+  const quantity = form['asset-qty'].value.trim();
+  const rawAmount = form['asset-amount'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const amount = parseFloat(rawAmount);
+  const dateStr = form['asset-date'].value || toLocalDateString(new Date());
+  const note = form['asset-note'].value.trim();
+  const fromMainWallet = form['from-main-wallet'] ? form['from-main-wallet'].checked : false;
+
+  if (!name || !amount || amount <= 0) {
+    showToast('❌ Вкажіть назву активу та суму');
+    return;
+  }
+
+  let proposedTx = [...transactions];
+  if (fromMainWallet) {
+    proposedTx.unshift({
+      id: 'temp_inv_in',
+      type: 'invest_in',
+      amount,
+      category: 'Інвестиції',
+      date: dateStr,
+      status: 'confirmed',
+      comment: `Купівля ${name}`
+    });
+  }
+
+  const newHistoryItem = {
+    id: 'ih_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+    action: 'buy',
+    assetName: name,
+    assetType,
+    amount,
+    pnl: 0,
+    date: dateStr,
+    note
+  };
+  const proposedHistory = [newHistoryItem, ...investHistory];
+
+  const sim = validateSimulatedState(proposedTx, investAssets, proposedHistory);
+  if (sim.wallet < 0) {
+    showToast(`❌ Недостатньо коштів в основному гаманці!`);
+    return;
+  }
+  if (sim.investCash < 0) {
+    showToast(`❌ Недостатньо вільних коштів в інвестиціях! Поставте галочку «Взяти з основного гаманця» або поповніть баланс.`);
+    return;
+  }
+
+  if (fromMainWallet) {
+    transactions.unshift({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'invest_in',
+      amount,
+      category: 'Інвестиції',
+      date: dateStr,
+      status: 'confirmed',
+      comment: `Купівля ${name}`
+    });
+    saveData();
+  }
+
+  const newAsset = {
+    id: 'asset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+    assetType,
+    name,
+    quantity,
+    investedAmount: amount,
+    currentValue: amount,
+    date: dateStr,
+    note
+  };
+
+  investAssets.unshift(newAsset);
+  investHistory = proposedHistory;
+  saveInvestments();
+  closeModal();
+  showToast(`🪙 Актив «${name}» додано в портфель!`);
+}
+
+function openUpdateAssetValueModal(assetId) {
+  const asset = investAssets.find(a => a.id === assetId);
+  if (!asset) return;
+  modal = { mode: 'invest_eval', asset };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('eval-value-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function submitUpdateAssetValue(e) {
+  e.preventDefault();
+  const raw = e.target.value.value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const val = parseFloat(raw);
+  if (isNaN(val) || val < 0) { showToast('❌ Введіть коректну вартість'); return; }
+  const qty = e.target.quantity ? e.target.quantity.value.trim() : modal.asset.quantity;
+
+  investAssets = investAssets.map(a => a.id === modal.asset.id ? { ...a, currentValue: val, quantity: qty } : a);
+  saveInvestments();
+  closeModal();
+  showToast(`📊 Оцінку «${modal.asset.name}» оновлено!`);
+}
+
+function openSellAssetModal(assetId) {
+  const asset = investAssets.find(a => a.id === assetId);
+  if (!asset) return;
+  modal = { mode: 'invest_sell', asset };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('sell-amount-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function submitSellAsset(e) {
+  e.preventDefault();
+  const form = e.target;
+  const asset = modal.asset;
+  const rawSell = form['sell-amount'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const sellAmount = parseFloat(rawSell);
+  const isFull = form['sell-mode'].value === 'full';
+  const dateStr = form['sell-date'].value || toLocalDateString(new Date());
+  const withdrawToMain = form['withdraw-to-main'] ? form['withdraw-to-main'].checked : false;
+
+  if (!sellAmount || sellAmount <= 0) { showToast('❌ Введіть суму продажу'); return; }
+
+  let costBasisSold = asset.investedAmount;
+  if (!isFull) {
+    const rawRemainCost = form['remain-cost'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+    const remainCost = parseFloat(rawRemainCost);
+    if (isNaN(remainCost) || remainCost < 0 || remainCost > asset.investedAmount) {
+      showToast('❌ Вкажіть коректний залишок вкладення');
+      return;
+    }
+    costBasisSold = Math.round((asset.investedAmount - remainCost) * 100) / 100;
+    const newCurrent = Math.max(0, Math.round((asset.currentValue - sellAmount) * 100) / 100);
+    const remainQty = form['remain-qty'] ? form['remain-qty'].value.trim() : asset.quantity;
+    investAssets = investAssets.map(a => a.id === asset.id ? {
+      ...a,
+      investedAmount: remainCost,
+      currentValue: newCurrent || remainCost,
+      quantity: remainQty
+    } : a);
+  } else {
+    investAssets = investAssets.filter(a => a.id !== asset.id);
+  }
+
+  const pnl = Math.round((sellAmount - costBasisSold) * 100) / 100;
+  investHistory.unshift({
+    id: 'ih_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+    action: 'sell',
+    assetName: asset.name,
+    assetType: asset.assetType,
+    amount: sellAmount,
+    pnl: pnl,
+    date: dateStr,
+    note: isFull ? 'Повний продаж' : 'Частковий продаж'
+  });
+  saveInvestments();
+
+  if (withdrawToMain) {
+    transactions.unshift({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'invest_out',
+      amount: sellAmount,
+      category: 'Інвестиції',
+      date: dateStr,
+      status: 'confirmed',
+      comment: `Продаж ${asset.name}`
+    });
+    saveData();
+  }
+
+  closeModal();
+  const pnlTxt = pnl >= 0 ? `+${fmt(pnl)} грн прибутку` : `${fmt(pnl)} грн збитку`;
+  showToast(withdrawToMain ? `💰 Продано (${pnlTxt}) та виведено в гаманець!` : `💰 Продано (${pnlTxt})! Кошти в інвест-кеші.`);
+}
+
+function openDeleteAssetModal(assetId) {
+  const asset = investAssets.find(a => a.id === assetId);
+  if (!asset) return;
+  modal = { mode: 'delete_asset_confirm', asset };
+  render();
+}
+
+function executeDeleteAsset(assetId) {
+  const asset = investAssets.find(a => a.id === assetId);
+  if (!asset) { closeModal(); return; }
+  investAssets = investAssets.filter(a => a.id !== assetId);
+  // Also return invested cost to investCash via reversing entry if desired, or remove buy log?
+  // Better: add a clean 'sell' reversal or remove matching buy history? No, adding a 'sell' reversal at costBasis is transparent and safe, OR removing the exact buy log if it matches. Let's add a sell-at-cost reversal or remove matching buy log if no partial sales happened.
+  const exactBuyIdx = investHistory.findIndex(h => h.action === 'buy' && h.assetName === asset.name && h.amount === asset.investedAmount && h.date === asset.date);
+  if (exactBuyIdx !== -1) {
+    investHistory.splice(exactBuyIdx, 1);
+  } else {
+    investHistory.unshift({
+      id: 'ih_' + Date.now(),
+      action: 'sell',
+      assetName: asset.name,
+      assetType: asset.assetType,
+      amount: asset.investedAmount,
+      pnl: 0,
+      date: toLocalDateString(new Date()),
+      note: 'Видалення позиції (повернення в кеш)'
+    });
+  }
+  saveInvestments();
+  closeModal();
+  showToast(`🗑️ Актив «${asset.name}» видалено, кошти повернено в інвест-кеш`);
+}
+
+function toggleInvestHistory() {
+  showInvestHistory = !showInvestHistory;
+  render();
+}
+
+/* ================== МОДАЛЬНІ ВІКНА ОСНОВНОЇ ВКЛАДКИ ================== */
 function openModal(type) {
   modal = { mode: 'create', type };
   render();
@@ -917,8 +1348,6 @@ function selectCategory(btn, value) {
     if (currentIconSpan) currentIconSpan.textContent = iconFor(value);
   }
 }
-
-
 
 function attachModalListeners() {
   if (!modal) return;
@@ -1008,6 +1437,7 @@ function submitModal(e) {
   const sim = validateSimulatedState(proposedTx);
   if (sim.savings < 0) { showToast(`❌ Відхилено: Скарбничка піде в мінус (${fmt(sim.savings)} грн)`); return; }
   if (sim.wallet < 0) { showToast(`❌ Відхилено: Гаманець піде в мінус (${fmt(sim.wallet)} грн)`); return; }
+  if (sim.investCash < 0) { showToast(`❌ Відхилено: Вільний кеш інвестицій піде в мінус (${fmt(sim.investCash)} грн)`); return; }
 
   const currentCats = customCategories[modal.type] || [];
   if (!currentCats.some(c => c.toLowerCase() === category.toLowerCase())) {
@@ -1055,183 +1485,357 @@ function submitModal(e) {
   closeModal();
 }
 
+function renderInvestTab(simState) {
+  const investCash = simState.investCash;
+  const totalInvestedCost = investAssets.reduce((s, a) => s + (a.investedAmount || 0), 0);
+  const totalAssetsVal = investAssets.reduce((s, a) => s + (a.currentValue ?? a.investedAmount ?? 0), 0);
+  const totalPortfolio = investCash + totalAssetsVal;
+  const unrealizedPnl = totalAssetsVal - totalInvestedCost;
+  const unrealizedPct = totalInvestedCost > 0 ? Math.round((unrealizedPnl / totalInvestedCost) * 1000) / 10 : 0;
+  const realizedPnl = investHistory.filter(h => h.action === 'sell').reduce((s, h) => s + (h.pnl || 0), 0);
+
+  const pnlClass = unrealizedPnl > 0 ? 'pos' : (unrealizedPnl < 0 ? 'neg' : 'flat');
+  const pnlSign = unrealizedPnl > 0 ? '+' : '';
+
+  // Group by asset type
+  const byType = {};
+  investAssets.forEach(a => {
+    const t = a.assetType || 'tokens';
+    byType[t] = (byType[t] || 0) + (a.currentValue ?? a.investedAmount ?? 0);
+  });
+
+  let html = `
+    <div class="invest-hero">
+      <div class="summary-label">Всього в інвестиціях</div>
+      <div class="invest-total">${fmt(totalPortfolio)} грн</div>
+      <div class="invest-pnl-badge ${pnlClass}">
+        ${pnlSign}${fmt(unrealizedPnl)} грн (${pnlSign}${unrealizedPct}%) за відкритими активами
+      </div>
+      <div class="split-row">
+        <div class="split-col">
+          <div class="summary-label">Вільний кеш</div>
+          <div class="split-value" style="color:var(--save)">${fmt(investCash)} грн</div>
+        </div>
+        <div class="split-col">
+          <div class="summary-label">В активах</div>
+          <div class="split-value" style="color:var(--accent)">${fmt(totalAssetsVal)} грн</div>
+        </div>
+      </div>
+      ${realizedPnl !== 0 ? `
+        <div class="divider"></div>
+        <div class="saved-row">
+          <div class="summary-label" style="margin-bottom:0">Зафіксовано прибутку з продажів</div>
+          <div class="saved-value" style="color:${realizedPnl >= 0 ? 'var(--income)' : 'var(--expense)'}">${realizedPnl >= 0 ? '+' : ''}${fmt(realizedPnl)} грн</div>
+        </div>
+      ` : ''}
+    </div>
+
+    <div class="invest-actions-row">
+      <button class="action-btn" onclick="openInvestTransferModal('invest_in')">
+        <div class="action-icon plus">↗</div>
+        <div>
+          <div class="action-title">Поповнити</div>
+          <div style="font-size:11px; color:var(--text-secondary)">з основного гаманця</div>
+        </div>
+      </button>
+      <button class="action-btn" onclick="openInvestTransferModal('invest_out')">
+        <div class="action-icon take">↙</div>
+        <div>
+          <div class="action-title">Повернути</div>
+          <div style="font-size:11px; color:var(--text-secondary)">в основний гаманець</div>
+        </div>
+      </button>
+    </div>
+
+    <button class="invest-buy-btn" onclick="openBuyAssetModal()">
+      <span>+ Купити актив (Токени, Акції, ОВДП...)</span>
+    </button>
+
+    <section class="list-section">
+      <h2 class="section-title">Мій портфель</h2>
+  `;
+
+  if (investAssets.length === 0) {
+    html += `<div class="empty-state">Поки що немає активів. Поповніть рахунок з основної вкладки або натисніть «+ Купити актив».</div>`;
+  } else {
+    html += investAssets.map(a => {
+      const tInfo = investTypeInfo(a.assetType);
+      const cur = a.currentValue ?? a.investedAmount ?? 0;
+      const cost = a.investedAmount || 0;
+      const diff = cur - cost;
+      const pct = cost > 0 ? Math.round((diff / cost) * 1000) / 10 : 0;
+      const pCls = diff > 0 ? 'pos' : (diff < 0 ? 'neg' : 'flat');
+      const pSign = diff > 0 ? '+' : '';
+      return `
+        <div class="asset-card">
+          <div class="asset-top">
+            <div>
+              <div class="asset-name">${tInfo.icon} ${escapeHtml(a.name)} ${a.quantity ? `<span style="font-size:13px; color:var(--accent); font-weight:600">(${escapeHtml(a.quantity)})</span>` : ''}</div>
+              <div class="asset-sub">${escapeHtml(tInfo.label)} • Вкладено: ${fmt(cost)} грн • ${escapeHtml(a.date)}</div>
+              ${a.note ? `<div class="asset-sub" style="color:var(--text-tertiary)">${escapeHtml(a.note)}</div>` : ''}
+            </div>
+            <div>
+              <div class="asset-val">${fmt(cur)} грн</div>
+              <div class="asset-pnl ${pCls}">${pSign}${fmt(diff)} грн (${pSign}${pct}%)</div>
+            </div>
+          </div>
+          <div class="asset-btns">
+            <button class="asset-btn" onclick="openUpdateAssetValueModal('${a.id}')">📊 Оцінка</button>
+            <button class="asset-btn sell" onclick="openSellAssetModal('${a.id}')">💰 Продати</button>
+            <button class="asset-btn del" onclick="openDeleteAssetModal('${a.id}')" title="Видалити">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  html += `</section>`;
+
+  if (Object.keys(byType).length > 0) {
+    html += `<section class="list-section"><h2 class="section-title">Розподіл за типами</h2>`;
+    html += Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([tId, val]) => {
+      const tInfo = investTypeInfo(tId);
+      const pct = totalAssetsVal > 0 ? Math.round((val / totalAssetsVal) * 100) : 0;
+      return `
+        <div class="list-item">
+          <div class="list-item-top">
+            <div class="list-item-name">${tInfo.icon} ${escapeHtml(tInfo.label)}</div>
+            <div class="list-item-amount" style="color:var(--accent)">${fmt(val)} грн</div>
+          </div>
+          <div class="pct-label">${pct}% від портфеля</div>
+          <div class="bar-track"><div class="bar-fill" style="background:var(--accent); width:${pct}%"></div></div>
+        </div>
+      `;
+    }).join('');
+    html += `</section>`;
+  }
+
+  html += `
+    <section class="list-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 class="section-title" style="margin:0;">Історія угод</h2>
+        <button class="backup-btn" style="flex:0; padding:6px 12px;" onclick="toggleInvestHistory()">${showInvestHistory ? 'Сховати' : 'Показати'}</button>
+      </div>
+  `;
+  if (showInvestHistory) {
+    html += `<div class="list-item scroll-area">`;
+    if (investHistory.length === 0) {
+      html += `<div class="empty-state">Історія угод порожня</div>`;
+    } else {
+      html += investHistory.map(h => {
+        const tInfo = investTypeInfo(h.assetType);
+        const isBuy = h.action === 'buy';
+        const pnlBadge = !isBuy && h.pnl !== 0 ? ` <span style="font-size:11.5px; color:${h.pnl >= 0 ? 'var(--income)' : 'var(--expense)'}">(${h.pnl >= 0 ? '+' : ''}${fmt(h.pnl)} грн)</span>` : '';
+        return `
+          <div class="tx-row" style="cursor:default;">
+            <div class="tx-meta">
+              <div class="tx-cat">${tInfo.icon} ${isBuy ? 'Купівля' : 'Продаж'}: ${escapeHtml(h.assetName)}${pnlBadge}</div>
+              <div class="tx-date">${escapeHtml(h.date)} ${h.note ? `• ${escapeHtml(h.note)}` : ''}</div>
+            </div>
+            <div class="tx-right">
+              <div class="list-item-amount ${isBuy ? 'expense' : 'income'}">${isBuy ? '−' : '+'}${fmt(h.amount)} грн</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    html += `</div>`;
+  }
+  html += `</section>`;
+
+  return html;
+}
+
 function render() {
   const app = document.getElementById('app');
   if (!loaded) { app.innerHTML = '<div class="loading-msg">Завантаження…</div>'; return; }
-
-  const now = currentMonthDate();
-  const key = monthKey(now);
-  const monthTx = txForMonth(key);
-
-  const monthConfirmed = monthTx.filter(t => t.status !== 'pending');
-  const monthPending = monthTx.filter(t => t.status === 'pending');
-  const income = monthConfirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = monthConfirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const saved = monthConfirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
-  const taken = monthConfirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
-  const net = income - expense;
 
   const simState = validateSimulatedState(transactions);
   const available = simState.wallet;
   const totalSavedAllTime = simState.savings;
 
-  const pendingIncMonth = monthPending.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const pendingExpMonth = monthPending.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const projectedAvailable = available + pendingIncMonth - pendingExpMonth;
-
-  const incomeGroups = groupSum(monthConfirmed.filter(t => t.type === 'income'));
-  const expenseGroups = groupSum(monthConfirmed.filter(t => t.type === 'expense'));
-  const maxIncomeCat = incomeGroups.length ? incomeGroups[0][1] : 0;
-  const maxExpenseCat = expenseGroups.length ? expenseGroups[0][1] : 0;
-  
-  const recentTx = [...monthTx].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || '')));
-  const parkingStats = getParkingStats();
-
   let htmlStr = `
     <div class="eyebrow"><span class="bag">💰</span><h1>Фінанси</h1></div>
-    <div class="month-nav">
-      <button onclick="changeMonth(-1)">‹</button>
-      <div class="month-label">${MONTHS_UK[now.getMonth()] + ' ' + now.getFullYear()}</div>
-      <button onclick="changeMonth(1)">›</button>
-    </div>
-    <div class="summary-card">
-      <div class="summary-row">
-        <div class="summary-label">Чистими за місяць</div>
-        <div class="summary-net">${net >= 0 ? '+' : ''}${fmt(net)} грн</div>
-      </div>
-      <div class="summary-row" style="margin-bottom:0">
-        <div class="summary-label">Доступно зараз</div>
-        <div class="summary-available">${fmt(available)} грн</div>
-        ${(pendingIncMonth || pendingExpMonth) ? `<div class="summary-projected">Прогноз з планом: <b>${fmt(projectedAvailable)} грн</b></div>` : ''}
-      </div>
-      <div class="split-row">
-        <div class="split-col"><div class="summary-label">Доходи</div><div class="split-value income">+${fmt(income)} грн</div></div>
-        <div class="split-col"><div class="summary-label">Витрати</div><div class="split-value expense">−${fmt(expense)} грн</div></div>
-      </div>
-      <div class="divider"></div>
-      <div class="saved-row">
-        <div class="summary-label" style="margin-bottom:0">Відкладено цього місяця</div>
-        <div class="saved-value">${fmt(saved - taken)} грн</div>
-      </div>
-    </div>
-
-    <div class="action-grid">
-      <button class="action-btn" onclick="openModal('income')"><div class="action-icon plus">+</div><div class="action-title">Дохід</div></button>
-      <button class="action-btn" onclick="openModal('expense')"><div class="action-icon minus">−</div><div class="action-title">Витрата</div></button>
-      <button class="action-btn" onclick="openModal('save')"><div class="action-icon save">🏦</div><div class="action-title">Відкласти</div></button>
-      <button class="action-btn" onclick="openModal('take')"><div class="action-icon take">↩</div><div class="action-title">Взяти</div></button>
-    </div>
-
-    <!-- ВІДЖЕТ КОНТРОЛЮ ПАРКОВКИ ТА ВЗАЄМОРОЗРАХУНКІВ -->
-    <div class="parking-card">
-      <div class="parking-head">
-        <div class="parking-title">🅿️ Парковка (взаєморозрахунки)</div>
-        <div class="parking-status ${parkingStats.debt > 0 ? 'debt' : 'clear'}">
-          ${parkingStats.debt > 0 ? `Вам винні: ${fmt(parkingStats.debt)} грн` : '✅ Все повернуто'}
-        </div>
-      </div>
-      <div class="parking-numbers">
-        <div class="parking-col">
-          <div class="parking-label">Сплачено вами</div>
-          <div class="parking-val paid">${fmt(parkingStats.paid)} грн</div>
-        </div>
-        <div class="parking-col">
-          <div class="parking-label">Вже повернули</div>
-          <div class="parking-val back">${fmt(parkingStats.refunded)} грн</div>
-        </div>
-        <div class="parking-col">
-          <div class="parking-label">Залишок боргу</div>
-          <div class="parking-val owe">${fmt(parkingStats.debt)} грн</div>
-        </div>
-      </div>
-      <div class="parking-btn-row">
-        <button class="p-btn pay" onclick="openParkingPayModal()">+ Сплатив парковку</button>
-        <button class="p-btn refund" onclick="openParkingRefundModal()">↩ Повернули гроші</button>
-        <button class="p-btn log" onclick="toggleParkingHistory()">${showParkingHistory ? 'Сховати' : 'Історія'}</button>
-      </div>
-      ${showParkingHistory ? `
-        <div class="parking-history">
-          ${parkingStats.history.length ? parkingStats.history.map(h => `
-            <div class="p-hist-item">
-              <div>
-                <span class="p-hist-tag ${h.isParking ? 'pay' : 'refund'}">${h.isParking ? 'Сплата' : 'Повернення'}</span>
-                <span style="margin-left:6px; color:var(--text-secondary);">${escapeHtml(h.comment || (h.isParking ? 'Парковка' : 'Повернення'))}</span>
-                <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">${escapeHtml(h.date)}</div>
-              </div>
-              <div style="font-family:'Sora',sans-serif; font-weight:700; color:${h.isParking ? 'var(--expense)' : 'var(--income)'}">
-                ${h.isParking ? '−' : '+'}${fmt(h.amount)} грн
-              </div>
-            </div>
-          `).join('') : '<div class="empty-state">Історія парковок порожня</div>'}
-        </div>
-      ` : ''}
+    <div class="tabs-bar">
+      <button class="tab-btn ${activeTab === 'finance' ? 'active' : ''}" onclick="switchTab('finance')">💳 Основна</button>
+      <button class="tab-btn ${activeTab === 'invest' ? 'active' : ''}" onclick="switchTab('invest')">📈 Інвестиції</button>
     </div>
   `;
 
-  if (monthPending.length > 0) {
+  if (activeTab === 'invest') {
+    htmlStr += renderInvestTab(simState);
+  } else {
+    const now = currentMonthDate();
+    const key = monthKey(now);
+    const monthTx = txForMonth(key);
+
+    const monthConfirmed = monthTx.filter(t => t.status !== 'pending');
+    const monthPending = monthTx.filter(t => t.status === 'pending');
+    const income = monthConfirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = monthConfirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const saved = monthConfirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
+    const taken = monthConfirmed.filter(t => t.type === 'take').reduce((s, t) => s + t.amount, 0);
+    const net = income - expense;
+
+    const pendingIncMonth = monthPending.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const pendingExpMonth = monthPending.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const projectedAvailable = available + pendingIncMonth - pendingExpMonth;
+
+    const incomeGroups = groupSum(monthConfirmed.filter(t => t.type === 'income'));
+    const expenseGroups = groupSum(monthConfirmed.filter(t => t.type === 'expense'));
+    const maxIncomeCat = incomeGroups.length ? incomeGroups[0][1] : 0;
+    const maxExpenseCat = expenseGroups.length ? expenseGroups[0][1] : 0;
+    
+    const recentTx = [...monthTx].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || '')));
+    const parkingStats = getParkingStats();
+
     htmlStr += `
-    <section class="list-section">
-      <h2 class="section-title">Очікувані операції ⏳</h2>
-      <div class="list-item" style="padding:4px 16px">
-    `;
-    htmlStr += monthPending.map(t => {
-      const isInc = t.type === 'income'; const sign = isInc ? '+~' : '−~'; const amtClass = isInc ? 'income' : 'expense';
-      return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} <span style="font-size:12px; color:var(--accent); font-weight:normal">(${isInc ? 'дохід' : 'витрата'})</span></div><div class="tx-date">План: ${escapeHtml(t.date)}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn confirm-btn" data-id="${escapeHtml(t.id)}" title="Підтвердити факт">✅</button><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
-    }).join('');
-    htmlStr += `
+      <div class="month-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <div class="month-label">${MONTHS_UK[now.getMonth()] + ' ' + now.getFullYear()}</div>
+        <button onclick="changeMonth(1)">›</button>
       </div>
-    </section>
+      <div class="summary-card">
+        <div class="summary-row">
+          <div class="summary-label">Чистими за місяць</div>
+          <div class="summary-net">${net >= 0 ? '+' : ''}${fmt(net)} грн</div>
+        </div>
+        <div class="summary-row" style="margin-bottom:0">
+          <div class="summary-label">Доступно зараз</div>
+          <div class="summary-available">${fmt(available)} грн</div>
+          ${(pendingIncMonth || pendingExpMonth) ? `<div class="summary-projected">Прогноз з планом: <b>${fmt(projectedAvailable)} грн</b></div>` : ''}
+        </div>
+        <div class="split-row">
+          <div class="split-col"><div class="summary-label">Доходи</div><div class="split-value income">+${fmt(income)} грн</div></div>
+          <div class="split-col"><div class="summary-label">Витрати</div><div class="split-value expense">−${fmt(expense)} грн</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="saved-row">
+          <div class="summary-label" style="margin-bottom:0">Відкладено цього місяця</div>
+          <div class="saved-value">${fmt(saved - taken)} грн</div>
+        </div>
+      </div>
+
+      <div class="action-grid">
+        <button class="action-btn" onclick="openModal('income')"><div class="action-icon plus">+</div><div class="action-title">Дохід</div></button>
+        <button class="action-btn" onclick="openModal('expense')"><div class="action-icon minus">−</div><div class="action-title">Витрата</div></button>
+        <button class="action-btn" onclick="openModal('save')"><div class="action-icon save">🏦</div><div class="action-title">Відкласти</div></button>
+        <button class="action-btn" onclick="openModal('take')"><div class="action-icon take">↩</div><div class="action-title">Взяти</div></button>
+      </div>
+
+      <!-- ВІДЖЕТ КОНТРОЛЮ ПАРКОВКИ ТА ВЗАЄМОРОЗРАХУНКІВ -->
+      <div class="parking-card">
+        <div class="parking-head">
+          <div class="parking-title">🅿️ Парковка (взаєморозрахунки)</div>
+          <div class="parking-status ${parkingStats.debt > 0 ? 'debt' : 'clear'}">
+            ${parkingStats.debt > 0 ? `Вам винні: ${fmt(parkingStats.debt)} грн` : '✅ Все повернуто'}
+          </div>
+        </div>
+        <div class="parking-numbers">
+          <div class="parking-col">
+            <div class="parking-label">Сплачено вами</div>
+            <div class="parking-val paid">${fmt(parkingStats.paid)} грн</div>
+          </div>
+          <div class="parking-col">
+            <div class="parking-label">Вже повернули</div>
+            <div class="parking-val back">${fmt(parkingStats.refunded)} грн</div>
+          </div>
+          <div class="parking-col">
+            <div class="parking-label">Залишок боргу</div>
+            <div class="parking-val owe">${fmt(parkingStats.debt)} грн</div>
+          </div>
+        </div>
+        <div class="parking-btn-row">
+          <button class="p-btn pay" onclick="openParkingPayModal()">+ Сплатив парковку</button>
+          <button class="p-btn refund" onclick="openParkingRefundModal()">↩ Повернули гроші</button>
+          <button class="p-btn log" onclick="toggleParkingHistory()">${showParkingHistory ? 'Сховати' : 'Історія'}</button>
+        </div>
+        ${showParkingHistory ? `
+          <div class="parking-history">
+            ${parkingStats.history.length ? parkingStats.history.map(h => `
+              <div class="p-hist-item">
+                <div>
+                  <span class="p-hist-tag ${h.isParking ? 'pay' : 'refund'}">${h.isParking ? 'Сплата' : 'Повернення'}</span>
+                  <span style="margin-left:6px; color:var(--text-secondary);">${escapeHtml(h.comment || (h.isParking ? 'Парковка' : 'Повернення'))}</span>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">${escapeHtml(h.date)}</div>
+                </div>
+                <div style="font-family:'Sora',sans-serif; font-weight:700; color:${h.isParking ? 'var(--expense)' : 'var(--income)'}">
+                  ${h.isParking ? '−' : '+'}${fmt(h.amount)} грн
+                </div>
+              </div>
+            `).join('') : '<div class="empty-state">Історія парковок порожня</div>'}
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    if (monthPending.length > 0) {
+      htmlStr += `
+      <section class="list-section">
+        <h2 class="section-title">Очікувані операції ⏳</h2>
+        <div class="list-item" style="padding:4px 16px">
+      `;
+      htmlStr += monthPending.map(t => {
+        const isInc = t.type === 'income'; const sign = isInc ? '+~' : '−~'; const amtClass = isInc ? 'income' : 'expense';
+        return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} <span style="font-size:12px; color:var(--accent); font-weight:normal">(${isInc ? 'дохід' : 'витрата'})</span></div><div class="tx-date">План: ${escapeHtml(t.date)}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn confirm-btn" data-id="${escapeHtml(t.id)}" title="Підтвердити факт">✅</button><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
+      }).join('');
+      htmlStr += `
+        </div>
+      </section>
+      `;
+    }
+
+    htmlStr += `
+      <section class="list-section">
+        <h2 class="section-title">Загальні заощадження</h2>
+        <div class="list-item"><div class="list-item-top"><div class="list-item-name">🏦 Відкладено всього</div><div class="list-item-amount" style="color:var(--save)">${fmt(totalSavedAllTime)} грн</div></div></div>
+      </section>
+
+      <section class="list-section">
+        <h2 class="section-title">Доходи за місяць</h2>
+    `;
+    htmlStr += incomeGroups.length ? incomeGroups.map(([cat, amt]) => `<div class="list-item"><div class="list-item-top"><div class="list-item-name">${iconFor(cat)} ${escapeHtml(cat)}</div><div class="list-item-amount income">+${fmt(amt)} грн</div></div><div class="pct-label">${income ? Math.round(amt / income * 100) : 0}% від усіх доходів</div><div class="bar-track"><div class="bar-fill income" style="width:${maxIncomeCat ? (amt / maxIncomeCat * 100) : 0}%"></div></div></div>`).join('') : '<div class="empty-state">Ще немає доходів за цей місяць</div>';
+    
+    htmlStr += `</section><section class="list-section"><h2 class="section-title">Витрати по категоріях</h2>`;
+    htmlStr += expenseGroups.length ? expenseGroups.map(([cat, amt]) => `<div class="list-item"><div class="list-item-top"><div class="list-item-name">${iconFor(cat)} ${escapeHtml(cat)}</div><div class="list-item-amount expense">${fmt(amt)} грн</div></div><div class="pct-label">${expense ? Math.round(amt / expense * 100) : 0}% від усіх витрат</div><div class="bar-track"><div class="bar-fill expense" style="width:${maxExpenseCat ? (amt / maxExpenseCat * 100) : 0}%"></div></div></div>`).join('') : '<div class="empty-state">Ще немає витрат за цей місяць</div>';
+    
+    htmlStr += `
+      </section>
+      <section class="list-section">
+        <h2 class="section-title">Останні операції</h2>
+        <div class="list-item scroll-area">
+    `;
+    htmlStr += recentTx.length ? recentTx.map(t => {
+      const isPending = t.status === 'pending';
+      const sign = isPending ? '⏳ ' : (t.type === 'income' || t.type === 'invest_out' ? '+' : t.type === 'expense' || t.type === 'invest_in' ? '−' : t.type === 'save' ? '🏦 ' : '↩ ');
+      const amtClass = isPending ? 'pending' : (t.type === 'income' || t.type === 'invest_out' ? 'income' : t.type === 'expense' || t.type === 'invest_in' ? 'expense' : '');
+      const extraTag = t.isParking ? ' • <span style="color:var(--accent)">🅿️ парковка</span>' : (t.isParkingRefund ? ' • <span style="color:var(--income)">↩️ повернення</span>' : (t.type === 'invest_in' ? ' • <span style="color:var(--accent)">📈 в інвестиції</span>' : (t.type === 'invest_out' ? ' • <span style="color:var(--income)">📈 з інвестицій</span>' : '')));
+      return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} ${t.comment ? `<span style="font-size:12px;color:var(--text-secondary)">(${escapeHtml(t.comment)})</span>` : ''}</div><div class="tx-date">${escapeHtml(t.date)}${extraTag} ${isPending ? '• <i>не зараховано</i>' : ''}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
+    }).join('') : '<div class="empty-state">Немає операцій у цьому місяці</div>';
+    htmlStr += `
+        </div>
+      </section>
+      <div class="backup-row">
+        <button class="backup-btn" onclick="setupStartingBalance()">💰 Стартовий капітал: ${fmt(startingBalance)} грн</button>
+      </div>
+      <div class="backup-row">
+        <button class="backup-btn" onclick="exportData()">⬇ Зберегти бекап</button>
+        <button class="backup-btn" onclick="document.getElementById('import-input').click()">⬆ Відновити з файлу</button>
+      </div>
+      <div class="backup-row">
+        <button class="backup-btn" onclick="setupCloudBackup()">☁️ ${backupUrl ? 'Хмара підключена' : 'Підключити хмару'}</button>
+        <button class="backup-btn" onclick="restoreFromCloud()">☁️⬇ З хмари</button>
+      </div>
+      <div class="backup-row">
+        <button class="backup-btn" onclick="setupTelegram()">${TG_ICON_SVG}${telegramConfig ? 'Telegram підключено' : 'Підключити Telegram'}</button>
+        <button class="backup-btn" onclick="telegramSyncNow(); showToast('Відправлено в Telegram')">${TG_ICON_SVG} Надіслати зараз</button>
+      </div>
+      <div class="backup-row">
+        <button class="backup-btn" onclick="forceAppUpdate()" style="color: var(--expense)">🔄 Оновити додаток (Скинути кеш)</button>
+      </div>
+      <input id="import-input" type="file" accept="application/json" style="display:none" onchange="importData(event)">
     `;
   }
-
-  htmlStr += `
-    <section class="list-section">
-      <h2 class="section-title">Загальні заощадження</h2>
-      <div class="list-item"><div class="list-item-top"><div class="list-item-name">🏦 Відкладено всього</div><div class="list-item-amount" style="color:var(--save)">${fmt(totalSavedAllTime)} грн</div></div></div>
-    </section>
-
-    <section class="list-section">
-      <h2 class="section-title">Доходи за місяць</h2>
-  `;
-  htmlStr += incomeGroups.length ? incomeGroups.map(([cat, amt]) => `<div class="list-item"><div class="list-item-top"><div class="list-item-name">${iconFor(cat)} ${escapeHtml(cat)}</div><div class="list-item-amount income">+${fmt(amt)} грн</div></div><div class="pct-label">${income ? Math.round(amt / income * 100) : 0}% від усіх доходів</div><div class="bar-track"><div class="bar-fill income" style="width:${maxIncomeCat ? (amt / maxIncomeCat * 100) : 0}%"></div></div></div>`).join('') : '<div class="empty-state">Ще немає доходів за цей місяць</div>';
-  
-  htmlStr += `</section><section class="list-section"><h2 class="section-title">Витрати по категоріях</h2>`;
-  htmlStr += expenseGroups.length ? expenseGroups.map(([cat, amt]) => `<div class="list-item"><div class="list-item-top"><div class="list-item-name">${iconFor(cat)} ${escapeHtml(cat)}</div><div class="list-item-amount expense">${fmt(amt)} грн</div></div><div class="pct-label">${expense ? Math.round(amt / expense * 100) : 0}% від усіх витрат</div><div class="bar-track"><div class="bar-fill expense" style="width:${maxExpenseCat ? (amt / maxExpenseCat * 100) : 0}%"></div></div></div>`).join('') : '<div class="empty-state">Ще немає витрат за цей місяць</div>';
-  
-  htmlStr += `
-    </section>
-    <section class="list-section">
-      <h2 class="section-title">Останні операції</h2>
-      <div class="list-item scroll-area">
-  `;
-  htmlStr += recentTx.length ? recentTx.map(t => {
-    const isPending = t.status === 'pending'; const sign = isPending ? '⏳ ' : (t.type === 'income' ? '+' : t.type === 'expense' ? '−' : t.type === 'save' ? '🏦 ' : '↩ '); const amtClass = isPending ? 'pending' : (t.type === 'income' ? 'income' : t.type === 'expense' ? 'expense' : '');
-    const extraTag = t.isParking ? ' • <span style="color:var(--accent)">🅿️ парковка</span>' : (t.isParkingRefund ? ' • <span style="color:var(--income)">↩️ повернення</span>' : '');
-    return `<div class="tx-row" data-id="${escapeHtml(t.id)}"><div class="tx-meta"><div class="tx-cat">${iconFor(t.category)} ${escapeHtml(t.category)} ${t.comment ? `<span style="font-size:12px;color:var(--text-secondary)">(${escapeHtml(t.comment)})</span>` : ''}</div><div class="tx-date">${escapeHtml(t.date)}${extraTag} ${isPending ? '• <i>не зараховано</i>' : ''}</div></div><div class="tx-right"><div class="list-item-amount ${amtClass}">${sign}${fmt(t.amount)} грн</div><button class="tx-btn edit-tx" data-id="${escapeHtml(t.id)}" title="Редагувати">✏️</button><button class="tx-btn del-tx" data-id="${escapeHtml(t.id)}" title="Видалити">✕</button></div></div>`;
-  }).join('') : '<div class="empty-state">Немає операцій у цьому місяці</div>';
-  htmlStr += `
-      </div>
-    </section>
-    <div class="backup-row">
-      <button class="backup-btn" onclick="setupStartingBalance()">💰 Стартовий капітал: ${fmt(startingBalance)} грн</button>
-    </div>
-    <div class="backup-row">
-      <button class="backup-btn" onclick="exportData()">⬇ Зберегти бекап</button>
-      <button class="backup-btn" onclick="document.getElementById('import-input').click()">⬆ Відновити з файлу</button>
-    </div>
-    <div class="backup-row">
-      <button class="backup-btn" onclick="setupCloudBackup()">☁️ ${backupUrl ? 'Хмара підключена' : 'Підключити хмару'}</button>
-      <button class="backup-btn" onclick="restoreFromCloud()">☁️⬇ З хмари</button>
-    </div>
-    <div class="backup-row">
-      <button class="backup-btn" onclick="setupTelegram()">${TG_ICON_SVG}${telegramConfig ? 'Telegram підключено' : 'Підключити Telegram'}</button>
-      <button class="backup-btn" onclick="telegramSyncNow(); showToast('Відправлено в Telegram')">${TG_ICON_SVG} Надіслати зараз</button>
-    </div>
-    <div class="backup-row">
-      <button class="backup-btn" onclick="forceAppUpdate()" style="color: var(--expense)">🔄 Оновити додаток (Скинути кеш)</button>
-    </div>
-    <input id="import-input" type="file" accept="application/json" style="display:none" onchange="importData(event)">
-  `;
 
   if (modal) { htmlStr += renderModal(); }
   if (toast) { htmlStr += `<div class="toast">${escapeHtml(toast)}</div>`; }
@@ -1241,12 +1845,12 @@ function render() {
   document.querySelectorAll('.edit-tx').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openEditModal(btn.dataset.id); }); });
   document.querySelectorAll('.confirm-btn').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openConfirmModal(btn.dataset.id); }); });
   document.querySelectorAll('.del-tx').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); deleteTransaction(btn.dataset.id); }); });
-  document.querySelectorAll('.tx-row').forEach(row => { row.addEventListener('click', (e) => { if (e.target.closest('button')) return; openEditModal(row.dataset.id); }); });
+  document.querySelectorAll('.tx-row[data-id]').forEach(row => { row.addEventListener('click', (e) => { if (e.target.closest('button')) return; openEditModal(row.dataset.id); }); });
   attachModalListeners();
 }
 
 function exportData() {
-  const payload = { transactions, customCategories, categoryIcons, startingBalance };
+  const payload = { transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance };
   const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a'); a.href = url; a.download = `finance-backup-${toLocalDateString(new Date())}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -1273,6 +1877,9 @@ function importData(event) {
         categoryIcons = { ...DEFAULT_CATEGORY_ICONS, ...parsed.categoryIcons };
         saveCategoryIcons();
       }
+      if (Array.isArray(parsed.investAssets)) investAssets = parsed.investAssets;
+      if (Array.isArray(parsed.investHistory)) investHistory = parsed.investHistory;
+      saveInvestments();
 
       render();
       showToast('✅ Дані успішно відновлено начисто!');
@@ -1282,10 +1889,200 @@ function importData(event) {
 }
 
 function renderModal() {
+  if (modal.mode === 'invest_transfer') {
+    const isOut = modal.dir === 'invest_out';
+    const sim = validateSimulatedState(transactions);
+    const maxAvail = isOut ? sim.investCash : sim.wallet;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h3 class="sheet-title">${isOut ? '↙ Повернути в основний гаманець' : '↗ Поповнити інвестиції'}</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          ${isOut ? `Вільний кеш в інвестиціях: <b>${fmt(maxAvail)} грн</b>` : `Доступно в основному гаманці: <b>${fmt(maxAvail)} грн</b>`}
+        </p>
+        <form onsubmit="submitInvestTransfer(event)">
+          <div class="field">
+            <label>Сума, грн</label>
+            <input id="invest-transfer-amount" name="amount" type="text" inputmode="decimal" placeholder="0" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Дата</label>
+            <input name="tx-date" type="date" value="${toLocalDateString(new Date())}" required>
+          </div>
+          <div class="field">
+            <label>Примітка (необовʼязково)</label>
+            <input name="comment" type="text" placeholder="${isOut ? 'Наприклад: Вивід прибутку' : 'Наприклад: Під токени'}">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm ${isOut ? 'income' : 'take'}">${isOut ? 'Повернути' : 'Переказати'}</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'invest_buy') {
+    const tInfo = investTypeInfo(modal.selectedType);
+    const sim = validateSimulatedState(transactions);
+    const needMainDefault = sim.investCash <= 0;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h3 class="sheet-title">+ Купити / Додати актив</h3>
+        <form onsubmit="submitBuyAsset(event)">
+          <div class="field">
+            <label>Варіант інвестиції</label>
+            <div class="chip-grid">
+              ${INVEST_TYPES.map(t => `
+                <button type="button" class="chip ${t.id === modal.selectedType ? 'active' : ''}" onclick="selectAssetType('${t.id}')">
+                  ${t.icon} ${escapeHtml(t.label)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="field">
+            <label>Назва / Тікер</label>
+            <input id="asset-name-input" name="asset-name" type="text" placeholder="Наприклад: ${tInfo.presets[0]}" required autocomplete="off">
+            <div class="chip-grid" style="margin-top:8px;">
+              ${tInfo.presets.map(p => `<button type="button" class="chip" style="padding:5px 10px; font-size:12px;" onclick="fillAssetPreset('${escapeHtml(p)}')">${escapeHtml(p)}</button>`).join('')}
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div class="field" style="flex:1;">
+              <label>Сума вкладення, грн</label>
+              <input id="asset-amount-input" name="asset-amount" type="text" inputmode="decimal" placeholder="0" required autocomplete="off">
+            </div>
+            <div class="field" style="flex:0.8;">
+              <label>Кількість (необовʼязк.)</label>
+              <input name="asset-qty" type="text" placeholder="Напр: 150 шт">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-checkbox">
+              <input type="checkbox" name="from-main-wallet" ${needMainDefault ? 'checked' : ''}>
+              <span>Взяти цю суму прямо з основного гаманця (вільний інвест-кеш: ${fmt(sim.investCash)} грн)</span>
+            </label>
+          </div>
+          <div class="field">
+            <label>Дата</label>
+            <input name="asset-date" type="date" value="${toLocalDateString(new Date())}" required>
+          </div>
+          <div class="field">
+            <label>Примітка</label>
+            <input name="asset-note" type="text" placeholder="Біржа / Гаманець / Коментар">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm take">Додати актив</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'invest_eval') {
+    const a = modal.asset;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:400px;">
+        <h3 class="sheet-title">📊 Оновити оцінку: ${escapeHtml(a.name)}</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Вкладено: <b>${fmt(a.investedAmount)} грн</b>. Вкажіть, скільки актив коштує зараз (на основну вкладку це не впливає).
+        </p>
+        <form onsubmit="submitUpdateAssetValue(event)">
+          <div class="field">
+            <label>Поточна вартість, грн</label>
+            <input id="eval-value-input" name="value" type="text" inputmode="decimal" value="${a.currentValue ?? a.investedAmount}" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Кількість</label>
+            <input name="quantity" type="text" value="${escapeHtml(a.quantity || '')}" placeholder="Напр: 150 шт">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm edit">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'invest_sell') {
+    const a = modal.asset;
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h3 class="sheet-title">💰 Продати: ${escapeHtml(a.name)}</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Вкладено: <b>${fmt(a.investedAmount)} грн</b> • Оцінка: <b>${fmt(a.currentValue ?? a.investedAmount)} грн</b>
+        </p>
+        <form onsubmit="submitSellAsset(event)">
+          <div class="field">
+            <label>Режим продажу</label>
+            <select name="sell-mode" onchange="document.getElementById('partial-sell-box').style.display = this.value === 'partial' ? 'block' : 'none'">
+              <option value="full">Продати повністю</option>
+              <option value="partial">Продати частину</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Отримано коштів від продажу, грн</label>
+            <input id="sell-amount-input" name="sell-amount" type="text" inputmode="decimal" value="${a.currentValue ?? a.investedAmount}" required autocomplete="off">
+          </div>
+          <div id="partial-sell-box" style="display:none; background:var(--bg-elevated-2); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--stroke); margin-bottom:14px;">
+            <div class="field" style="margin-bottom:10px;">
+              <label>Скільки початкового вкладення ще залишається, грн</label>
+              <input name="remain-cost" type="text" inputmode="decimal" value="${Math.round(a.investedAmount / 2)}">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Залишок кількості (необовʼязково)</label>
+              <input name="remain-qty" type="text" value="${escapeHtml(a.quantity || '')}">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-checkbox">
+              <input type="checkbox" name="withdraw-to-main">
+              <span>↙️ Одразу повернути отримані кошти в основний гаманець</span>
+            </label>
+          </div>
+          <div class="field">
+            <label>Дата</label>
+            <input name="sell-date" type="date" value="${toLocalDateString(new Date())}" required>
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm income">Продати</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'delete_asset_confirm') {
+    const a = modal.asset;
+    const tInfo = investTypeInfo(a.assetType);
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:400px; text-align:center;">
+        <div style="width:52px; height:52px; border-radius:50%; background:var(--expense-dim); color:var(--expense); display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 14px;">
+          🗑️
+        </div>
+        <h3 class="sheet-title" style="margin:0 0 6px; font-size:18px;">Видалити актив?</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0 0 16px;">
+          Актив «${tInfo.icon} ${escapeHtml(a.name)}» буде видалено з портфеля, а вкладені <b>${fmt(a.investedAmount)} грн</b> повернуться у вільний інвест-кеш.
+        </p>
+        <div class="sheet-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+          <button type="button" class="btn btn-danger" style="background:var(--expense); color:#14161c; font-weight:700;" onclick="executeDeleteAsset('${a.id}')">Видалити</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
   if (modal.mode === 'delete_confirm') {
     const tx = modal.tx;
     const isPending = tx.status === 'pending';
-    const isIncome = tx.type === 'income';
+    const isIncome = tx.type === 'income' || tx.type === 'invest_out';
     const sign = isPending ? '⏳ ' : (isIncome ? '+' : '−');
     const amtColor = isPending ? 'var(--accent)' : (isIncome ? 'var(--income)' : 'var(--expense)');
     const parent = modal.parentPending;
@@ -1302,7 +2099,6 @@ function renderModal() {
           Цю дію не можна буде скасувати.
         </p>
 
-        <!-- Картка операції -->
         <div style="background:var(--bg-elevated-2); border:1px solid var(--stroke); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:14px; text-align:left;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <div style="font-weight:600; font-size:15px;">${iconFor(tx.category)} ${escapeHtml(tx.category)}</div>
@@ -1316,9 +2112,8 @@ function renderModal() {
         </div>
 
         ${returnToPending && parent ? `
-          <!-- Повернення в очікувані -->
           <div style="background:rgba(212, 162, 76, 0.12); border:1px solid rgba(212, 162, 76, 0.3); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px; text-align:left; font-size:12.5px; color:var(--accent); line-height:1.4;">
-            ↩️ Сума <b>${fmt(tx.amount)} грн</b> буде автоматично повернена назад у очікувану операцію <b>«${escapeHtml(parent.category)}»</b>!
+            ↩️ Сума <b>${fmt(tx.amount)} грн</b> буде автоматично повернута назад у очікувану операцію <b>«${escapeHtml(parent.category)}»</b>!
           </div>
         ` : ''}
 
@@ -1388,7 +2183,7 @@ function renderModal() {
   if (!modal.title) {
     if (isConfirm) title = modal.tx.type === 'income' ? 'Підтвердити отримання' : 'Підтвердити витрату';
     else if (isEdit) title = 'Редагувати запис';
-    else title = { income: 'Новий дохід', expense: 'Нова витрата', save: 'Відкласти кошти', take: 'Взяти із заощаджень' }[modal.type];
+    else title = { income: 'Новий дохід', expense: 'Нова витрата', save: 'Відкласти кошти', take: 'Взяти із заощаджень' }[modal.type] || 'Операція';
   }
 
   const tx = modal.tx || {}; 
@@ -1465,7 +2260,7 @@ function renderModal() {
           <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
   `;
   if (isEdit) {
-    modalHtml += `<button type="button" class="btn btn-danger" onclick="if(deleteTransaction('${tx.id}')){ closeModal(); }">Видалити</button>`;
+    modalHtml += `<button type="button" class="btn btn-danger" onclick="if(deleteTransaction('${tx.id}')){ }">Видалити</button>`;
   }
   modalHtml += `
           <button type="submit" class="btn btn-confirm ${isConfirm ? (modal.tx.type === 'income' ? 'income' : 'expense') : (isEdit ? 'edit' : modal.type)}">${isConfirm ? 'Зарахувати' : (isEdit ? 'Зберегти' : 'Додати')}</button>
