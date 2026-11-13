@@ -734,19 +734,28 @@ async function cloudSyncNow() {
   } catch (e) { console.error(e); }
 }
 
-async function setupCloudBackup() {
-  const current = backupUrl || '';
-  const input = prompt('Встав посилання на твій Google Apps Script (Web app URL):', current);
-  if (input === null) return;
-  const trimmed = input.trim();
+function setupCloudBackup() {
+  modal = { mode: 'setup_cloud' };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('cloud-url-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+async function submitCloudBackup(e) {
+  e.preventDefault();
+  const trimmed = e.target['cloud-url'].value.trim();
   if (!trimmed) {
     await saveBackupUrl('');
+    closeModal();
     showToast('☁️ Хмарний бекап вимкнено');
-    render(); return;
+    return;
   }
   await saveBackupUrl(trimmed);
+  closeModal();
   showToast('✅ Хмарний бекап успішно підключено');
-  render(); cloudSyncNow();
+  cloudSyncNow();
 }
 
 async function restoreFromCloud() {
@@ -816,14 +825,29 @@ async function telegramSyncNow() {
   } catch (e) { console.error(e); }
 }
 
-async function setupTelegram() {
-  const token = prompt('Встав токен бота:', telegramConfig?.token || ''); if (token === null) return;
-  const chatId = prompt('Встав свій chat_id:', telegramConfig?.chatId || ''); if (chatId === null) return;
-  if (!token.trim() || !chatId.trim()) {
-    await saveTelegramConfig(null); showToast('Telegram-бекап вимкнено'); render(); return;
+function setupTelegram() {
+  modal = { mode: 'setup_telegram' };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('tg-token-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+async function submitTelegramSetup(e) {
+  e.preventDefault();
+  const token = e.target['tg-token'].value.trim();
+  const chatId = e.target['tg-chat-id'].value.trim();
+  if (!token || !chatId) {
+    await saveTelegramConfig(null);
+    closeModal();
+    showToast('Telegram-бекап вимкнено');
+    return;
   }
-  await saveTelegramConfig({ token: token.trim(), chatId: chatId.trim(), lastMessageId: telegramConfig?.lastMessageId || null });
-  showToast('✅ Telegram-бекап успішно увімкнено!'); render(); telegramSyncNow();
+  await saveTelegramConfig({ token, chatId, lastMessageId: telegramConfig?.lastMessageId || null });
+  closeModal();
+  showToast('✅ Telegram-бекап успішно увімкнено!');
+  telegramSyncNow();
 }
 
 
@@ -838,36 +862,48 @@ async function saveInvestStartingBalance(val) {
 }
 
 function setupInvestStartingBalance() {
-  const current = investStartingBalance || 0;
-  const input = prompt('Введіть суму інвестицій, яка була у вас ще до створення додатку (не впливає на основну вкладку), грн:', current);
-  if (input === null) return;
-  const parsedAmount = Math.max(0, parseFloat(input.trim().replace(',', '.').replace(/[^0-9.]/g, '')) || 0);
+  modal = { mode: 'setup_invest_start' };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('invest-start-input');
+    if (input) { input.focus(); input.select(); }
+  }, 100);
+}
 
-  const sim = validateSimulatedState(transactions, investAssets, investHistory, startingBalance, investStartingBalance, parsedAmount);
+function submitInvestStartingBalance(e) {
+  e.preventDefault();
+  const raw = e.target.amount.value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const parsedAmount = Math.max(0, parseFloat(raw) || 0);
+  const sim = validateSimulatedState(transactions, investAssets, investHistory, startingBalance, parsedAmount);
   if (sim.investCash < 0) {
     showToast(`❌ Помилка: вільний інвест-кеш стане ${fmt(sim.investCash)} грн`);
     return;
   }
-
   saveInvestStartingBalance(parsedAmount);
-  render();
+  closeModal();
   showToast('✅ Стартовий інвест-баланс оновлено!');
 }
 
 function setupStartingBalance() {
-  const current = startingBalance || 0;
-  const input = prompt('Введіть ваш початковий баланс (стартовий капітал), грн:', current);
-  if (input === null) return;
-  const parsedAmount = Math.max(0, parseFloat(input.trim().replace(',', '.').replace(/[^0-9.]/g, '')) || 0);
-  
+  modal = { mode: 'setup_start_balance' };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('start-bal-input');
+    if (input) { input.focus(); input.select(); }
+  }, 100);
+}
+
+function submitStartingBalance(e) {
+  e.preventDefault();
+  const raw = e.target.amount.value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const parsedAmount = Math.max(0, parseFloat(raw) || 0);
   const sim = validateSimulatedState(transactions, investAssets, investHistory, parsedAmount);
   if (sim.wallet < 0) {
     showToast(`❌ Помилка: з таким капіталом гаманець стане ${fmt(sim.wallet)} грн`);
     return;
   }
-
   saveStartingBalance(parsedAmount);
-  render();
+  closeModal();
   showToast('✅ Стартовий капітал успішно оновлено!');
 }
 
@@ -1938,6 +1974,100 @@ function importData(event) {
 }
 
 function renderModal() {
+  if (modal.mode === 'setup_start_balance') {
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:400px;">
+        <h3 class="sheet-title">💰 Стартовий капітал</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Початковий баланс на момент запуску додатку (впливає лише на «Доступно зараз» на основній вкладці).
+        </p>
+        <form onsubmit="submitStartingBalance(event)">
+          <div class="field">
+            <label>Сума, грн</label>
+            <input id="start-bal-input" name="amount" type="text" inputmode="decimal" value="${startingBalance || 0}" placeholder="0" required autocomplete="off">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm edit">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'setup_invest_start') {
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:400px;">
+        <h3 class="sheet-title">💰 Початковий баланс інвестицій</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Кошти в інвестиціях, які були у вас ще до створення додатку. Не впливають на доходи й витрати основної вкладки.
+        </p>
+        <form onsubmit="submitInvestStartingBalance(event)">
+          <div class="field">
+            <label>Сума, грн</label>
+            <input id="invest-start-input" name="amount" type="text" inputmode="decimal" value="${investStartingBalance || 0}" placeholder="0" required autocomplete="off">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm edit">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'setup_cloud') {
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:420px;">
+        <h3 class="sheet-title">☁️ Хмарний бекап</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Вставте Web App URL вашого Google Apps Script. Щоб вимкнути синхронізацію — залиште поле порожнім.
+        </p>
+        <form onsubmit="submitCloudBackup(event)">
+          <div class="field">
+            <label>Google Apps Script URL</label>
+            <input id="cloud-url-input" name="cloud-url" type="url" value="${escapeHtml(backupUrl || '')}" placeholder="https://script.google.com/macros/s/..." autocomplete="off">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            ${backupUrl ? `<button type="button" class="btn btn-danger" onclick="saveBackupUrl(''); closeModal(); showToast('☁️ Хмарний бекап вимкнено'); render();">Вимкнути</button>` : ''}
+            <button type="submit" class="btn btn-confirm edit">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'setup_telegram') {
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-width:420px;">
+        <h3 class="sheet-title">${TG_ICON_SVG} Налаштування Telegram</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:-8px 0 14px;">
+          Автоматичний бекап у ваш Telegram-бот після кожної зміни.
+        </p>
+        <form onsubmit="submitTelegramSetup(event)">
+          <div class="field">
+            <label>Токен бота</label>
+            <input id="tg-token-input" name="tg-token" type="text" value="${escapeHtml(telegramConfig?.token || '')}" placeholder="123456:ABC-DEF..." autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Ваш Chat ID</label>
+            <input name="tg-chat-id" type="text" value="${escapeHtml(telegramConfig?.chatId || '')}" placeholder="123456789" autocomplete="off">
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            ${telegramConfig ? `<button type="button" class="btn btn-danger" onclick="saveTelegramConfig(null); closeModal(); showToast('Telegram-бекап вимкнено'); render();">Вимкнути</button>` : ''}
+            <button type="submit" class="btn btn-confirm edit">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
   if (modal.mode === 'invest_transfer') {
     const isOut = modal.dir === 'invest_out';
     const sim = validateSimulatedState(transactions);
