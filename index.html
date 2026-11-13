@@ -407,6 +407,7 @@ const INVEST_HISTORY_KEY = 'finance-invest-history-v1';
 const BACKUP_URL_KEY = 'finance-backup-url-v1';
 const TG_KEY = 'finance-telegram-v1';
 const STARTING_BALANCE_KEY = 'finance-starting-balance-v1';
+const INVEST_START_KEY = 'finance-invest-starting-balance-v1';
 
 const TG_ICON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px; margin-right:4px;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" fill="#2AABEE"/></svg>`;
 
@@ -472,6 +473,7 @@ let customCategories = { income: [], expense: [], save: [], take: [], invest_in:
 let investAssets = []; // { id, assetType, name, quantity, investedAmount, currentValue, date, note }
 let investHistory = []; // { id, action: 'buy'|'sell'|'in'|'out', assetName, assetType, amount, pnl, date, note }
 let startingBalance = 0;
+let investStartingBalance = 0;
 let monthOffset = 0;
 let modal = null;
 let loaded = false;
@@ -573,6 +575,15 @@ async function loadData() {
       investHistory = raw ? JSON.parse(raw) : [];
     }
   } catch (e) { investHistory = []; }
+
+  try {
+    if (window.storage) {
+      const res = await window.storage.get(INVEST_START_KEY, false);
+      investStartingBalance = res ? parseFloat(res.value) || 0 : 0;
+    } else {
+      investStartingBalance = parseFloat(localStorage.getItem(INVEST_START_KEY)) || 0;
+    }
+  } catch (e) { investStartingBalance = 0; }
 
   let seeded = false;
   Object.keys(DEFAULT_CATS).forEach((type) => {
@@ -718,7 +729,7 @@ async function cloudSyncNow() {
   try {
     await fetch(backupUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, savedAt: new Date().toISOString() })
+      body: JSON.stringify({ transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, investStartingBalance, savedAt: new Date().toISOString() })
     });
   } catch (e) { console.error(e); }
 }
@@ -744,6 +755,7 @@ async function restoreFromCloud() {
     const res = await fetch(backupUrl);
     const parsed = await res.json();
     if (typeof parsed.startingBalance === 'number') saveStartingBalance(parsed.startingBalance);
+    if (typeof parsed.investStartingBalance === 'number') saveInvestStartingBalance(parsed.investStartingBalance);
     transactions = parsed.transactions || [];
     if (parsed.customCategories) customCategories = parsed.customCategories;
     if (parsed.categoryIcons) { categoryIcons = { ...DEFAULT_CATEGORY_ICONS, ...parsed.categoryIcons }; saveCategoryIcons(); }
@@ -780,7 +792,7 @@ function scheduleTelegramSync() {
 async function telegramSyncNow() {
   if (!telegramConfig || !telegramConfig.token || !telegramConfig.chatId) return;
   try {
-    const payload = JSON.stringify({ transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, savedAt: new Date().toISOString() }, null, 2);
+    const payload = JSON.stringify({ transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, investStartingBalance, savedAt: new Date().toISOString() }, null, 2);
     const blob = new Blob([payload], { type: 'application/json' });
     const form = new FormData();
     form.append('chat_id', telegramConfig.chatId);
@@ -814,6 +826,34 @@ async function setupTelegram() {
   showToast('✅ Telegram-бекап успішно увімкнено!'); render(); telegramSyncNow();
 }
 
+
+async function saveInvestStartingBalance(val) {
+  investStartingBalance = val;
+  try {
+    if (window.storage) await window.storage.set(INVEST_START_KEY, String(val), false);
+    else localStorage.setItem(INVEST_START_KEY, String(val));
+  } catch (e) { console.error(e); }
+  scheduleCloudSync();
+  scheduleTelegramSync();
+}
+
+function setupInvestStartingBalance() {
+  const current = investStartingBalance || 0;
+  const input = prompt('Введіть суму інвестицій, яка була у вас ще до створення додатку (не впливає на основну вкладку), грн:', current);
+  if (input === null) return;
+  const parsedAmount = Math.max(0, parseFloat(input.trim().replace(',', '.').replace(/[^0-9.]/g, '')) || 0);
+
+  const sim = validateSimulatedState(transactions, investAssets, investHistory, startingBalance, investStartingBalance, parsedAmount);
+  if (sim.investCash < 0) {
+    showToast(`❌ Помилка: вільний інвест-кеш стане ${fmt(sim.investCash)} грн`);
+    return;
+  }
+
+  saveInvestStartingBalance(parsedAmount);
+  render();
+  showToast('✅ Стартовий інвест-баланс оновлено!');
+}
+
 function setupStartingBalance() {
   const current = startingBalance || 0;
   const input = prompt('Введіть ваш початковий баланс (стартовий капітал), грн:', current);
@@ -831,7 +871,7 @@ function setupStartingBalance() {
   showToast('✅ Стартовий капітал успішно оновлено!');
 }
 
-function validateSimulatedState(proposedTx, proposedAssets = investAssets, proposedHistory = investHistory, customStart = startingBalance) {
+function validateSimulatedState(proposedTx, proposedAssets = investAssets, proposedHistory = investHistory, customStart = startingBalance, customInvestStart = investStartingBalance) {
   const confirmed = proposedTx.filter(t => t.status !== 'pending');
   const inc = confirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const exp = confirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -846,7 +886,7 @@ function validateSimulatedState(proposedTx, proposedAssets = investAssets, propo
   return {
     savings: sav - tak,
     wallet: customStart + inc - exp - sav + tak - invIn + invOut,
-    investCash: invIn - invOut - boughtSum + soldSum
+    investCash: customInvestStart + invIn - invOut - boughtSum + soldSum
   };
 }
 
@@ -1643,6 +1683,13 @@ function renderInvestTab(simState) {
   }
   html += `</section>`;
 
+
+  html += `
+    <div class="backup-row" style="margin-top:8px;">
+      <button class="backup-btn" onclick="setupInvestStartingBalance()">💰 Початковий баланс інвестицій: ${fmt(investStartingBalance)} грн</button>
+    </div>
+  `;
+
   return html;
 }
 
@@ -1850,7 +1897,7 @@ function render() {
 }
 
 function exportData() {
-  const payload = { transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance };
+  const payload = { transactions, customCategories, categoryIcons, investAssets, investHistory, startingBalance, investStartingBalance };
   const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a'); a.href = url; a.download = `finance-backup-${toLocalDateString(new Date())}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -1865,6 +1912,8 @@ function importData(event) {
       const parsed = JSON.parse(reader.result);
       startingBalance = typeof parsed.startingBalance === 'number' ? parsed.startingBalance : 0;
       saveStartingBalance(startingBalance);
+      investStartingBalance = typeof parsed.investStartingBalance === 'number' ? parsed.investStartingBalance : 0;
+      saveInvestStartingBalance(investStartingBalance);
 
       transactions = Array.isArray(parsed) ? parsed : (parsed.transactions || []);
       saveData();
