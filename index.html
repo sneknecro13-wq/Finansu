@@ -379,6 +379,106 @@
   .asset-btn.del { flex: 0.35; color: var(--text-tertiary); }
   .asset-btn:active { opacity: 0.8; }
 
+
+  /* Вкладка Роботи (Вишка / Шабашка) */
+  .jobs-hero {
+    background: linear-gradient(145deg, #1f2430 0%, #161922 100%);
+    border: 1px solid #364057;
+    border-radius: var(--radius-lg);
+    padding: 20px 18px;
+    margin-bottom: 16px;
+  }
+  .jobs-debt-total {
+    font-family: 'Sora', sans-serif; font-size: 34px; font-weight: 800;
+    color: var(--accent); letter-spacing: -0.02em; line-height: 1.1; margin: 4px 0 8px;
+  }
+  .jobs-cat-pills {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+  }
+  .jobs-cat-pill {
+    background: var(--bg-elevated-2); border: 1px solid var(--stroke);
+    border-radius: 8px; padding: 5px 10px; font-size: 12.5px; color: var(--text-secondary);
+  }
+  .jobs-cat-pill b { color: var(--text-primary); font-family: 'Sora', sans-serif; }
+  .jobs-add-btn {
+    width: 100%; background: var(--accent-dim); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: var(--radius-md); padding: 14px;
+    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px;
+    cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .jobs-add-btn:active { opacity: 0.85; }
+  .jobs-filter-bar {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px;
+    scrollbar-width: none;
+  }
+  .jobs-filter-bar::-webkit-scrollbar { display: none; }
+  .jobs-filter-chip {
+    background: var(--bg-elevated); border: 1px solid var(--stroke);
+    border-radius: 999px; padding: 7px 12px; font-size: 12.5px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .jobs-filter-chip.active {
+    background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 600;
+  }
+  .job-card {
+    background: var(--bg-elevated); border: 1px solid var(--stroke);
+    border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px;
+    position: relative; overflow: hidden;
+  }
+  .job-card.status-unpaid { border-left: 4px solid var(--expense); }
+  .job-card.status-partial { border-left: 4px solid var(--accent); }
+  .job-card.status-paid { border-left: 4px solid var(--income); }
+  .job-header {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;
+  }
+  .job-title-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .job-cat-title {
+    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px;
+  }
+  .job-status-badge {
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+  }
+  .job-status-badge.unpaid { background: var(--expense-dim); color: var(--expense); border: 1px solid rgba(242,104,92,0.3); }
+  .job-status-badge.partial { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(212,162,76,0.35); }
+  .job-status-badge.paid { background: var(--income-dim); color: var(--income); border: 1px solid rgba(74,222,138,0.3); }
+  .job-amounts-right { text-align: right; flex-shrink: 0; }
+  .job-main-amt { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; }
+  .job-sub-amt { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .job-desc-box {
+    background: var(--bg-elevated-2); border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 10px;
+    font-size: 13px; line-height: 1.45;
+  }
+  .job-desc-line { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 4px; }
+  .job-desc-line:last-child { margin-bottom: 0; }
+  .job-timeline {
+    background: rgba(20, 22, 28, 0.55); border: 1px dashed var(--stroke);
+    border-radius: var(--radius-sm); padding: 10px 12px; margin: 10px 0 12px;
+    font-size: 12.5px;
+  }
+  .job-tl-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .job-tl-item:last-child { border-bottom: none; }
+  .job-tl-left { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+  .job-tl-right { font-family: 'Sora', sans-serif; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .job-actions {
+    display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--stroke);
+  }
+  .job-btn {
+    flex: 1; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--stroke);
+    background: var(--bg-elevated-2); color: var(--text-primary);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .job-btn.pay { background: var(--income-dim); color: var(--income); border-color: rgba(74, 222, 138, 0.35); }
+  .job-btn.del { flex: 0.3; color: var(--text-tertiary); }
+  .job-btn:active { opacity: 0.8; }
+
 </style>
 </head>
 <body>
@@ -486,6 +586,9 @@ let telegramConfig = null;
 let tgSyncTimer = null;
 let showParkingHistory = false;
 let showInvestHistory = false;
+let jobsStatusFilter = 'all'; // 'all' | 'open' | 'partial' | 'paid'
+let jobsCatFilter = 'all'; // 'all' | 'Вишка' | 'Шабашка'
+let jobsPeriodMode = 'all'; // 'all' | 'month'
 
 function showToast(msg) {
   toast = msg;
@@ -944,7 +1047,7 @@ function deleteTransaction(id) {
   let returnToPending = false;
   let parentPending = null;
   if (target.parentPendingId) {
-    parentPending = transactions.find(t => t.id === target.parentPendingId && t.status === 'pending');
+    parentPending = transactions.find(t => t.id === target.parentPendingId);
     if (parentPending) {
       returnToPending = true;
     }
@@ -966,15 +1069,37 @@ function executeDelete(id, returnToPending, parentPendingId) {
 
   let proposedTx = transactions.filter(t => t.id !== id);
   if (returnToPending && parentPendingId) {
-    proposedTx = proposedTx.map(t => {
-      if (t.id === parentPendingId) {
-        return {
+    const parentObj = proposedTx.find(t => t.id === parentPendingId);
+    if (parentObj) {
+      if (parentObj.status === 'pending') {
+        proposedTx = proposedTx.map(t => t.id === parentPendingId ? {
           ...t,
           amount: Math.round((t.amount + target.amount) * 100) / 100
+        } : t);
+      } else {
+        // Якщо батьківська робота вже була закрита (confirmed), зберігаємо її фінальний платіж як дочірній, а саму роботу повертаємо в pending на суму видаленого платежу
+        const finalPayChild = {
+          id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+          type: parentObj.type,
+          amount: parentObj.amount,
+          category: parentObj.category,
+          date: parentObj.confirmedAt || parentObj.date,
+          confirmedAt: parentObj.confirmedAt || parentObj.date,
+          createdAt: parentObj.createdAt || parentObj.plannedDate || parentObj.date,
+          status: 'confirmed',
+          comment: (parentObj.jobLocation || parentObj.comment || parentObj.category) + ' (частина)',
+          parentPendingId: parentObj.id
         };
+        proposedTx.unshift(finalPayChild);
+        proposedTx = proposedTx.map(t => t.id === parentPendingId ? {
+          ...t,
+          status: 'pending',
+          amount: target.amount,
+          date: t.createdAt || t.plannedDate || t.date,
+          confirmedAt: null
+        } : t);
       }
-      return t;
-    });
+    }
   }
 
   const sim = validateSimulatedState(proposedTx);
@@ -1082,6 +1207,355 @@ function openParkingRefundModal() {
 function toggleParkingHistory() {
   showParkingHistory = !showParkingHistory;
   render();
+}
+
+/* ================== РОБОТИ (ВИШКА / ШАБАШКА) ================== */
+function isJobCategory(cat) {
+  const c = String(cat || '').trim().toLowerCase();
+  return c === 'вишка' || c === 'шабашка' || c === 'підробіток';
+}
+
+function getAllJobsList() {
+  const rootCandidates = transactions.filter(t => {
+    if (t.type !== 'income') return false;
+    if (t.parentPendingId) return false;
+    if (t.isParkingRefund) return false;
+    const hasChildren = transactions.some(c => c.parentPendingId === t.id);
+    return Boolean(t.isJob || t.status === 'pending' || isJobCategory(t.category) || hasChildren);
+  });
+
+  return rootCandidates.map(t => {
+    const children = transactions
+      .filter(c => c.parentPendingId === t.id && c.status !== 'pending')
+      .sort((a, b) => String(a.confirmedAt || a.date || '').localeCompare(String(b.confirmedAt || b.date || '')) || String(a.id || '').localeCompare(String(b.id || '')));
+
+    const childrenPaid = Math.round(children.reduce((s, c) => s + (c.amount || 0), 0) * 100) / 100;
+    const isPending = t.status === 'pending';
+    const remaining = isPending ? Math.round((t.amount || 0) * 100) / 100 : 0;
+    const paidTotal = isPending ? childrenPaid : Math.round((childrenPaid + (t.amount || 0)) * 100) / 100;
+    const computedInitial = Math.round((paidTotal + remaining) * 100) / 100;
+    const initialAmount = t.initialAmount ? Math.max(t.initialAmount, computedInitial) : computedInitial;
+    const createdAt = t.createdAt || t.plannedDate || t.date;
+    const closedAt = !isPending ? (t.confirmedAt || t.date) : null;
+
+    let jobStatus = 'unpaid';
+    if (!isPending || remaining <= 0) jobStatus = 'paid';
+    else if (paidTotal > 0) jobStatus = 'partial';
+
+    const payments = children.map((c, idx) => ({
+      id: c.id,
+      date: c.confirmedAt || c.date,
+      amount: c.amount,
+      note: c.comment || `Частина #${idx + 1}`,
+      isChild: true
+    }));
+
+    if (!isPending) {
+      payments.push({
+        id: t.id,
+        date: t.confirmedAt || t.date,
+        amount: t.amount,
+        note: children.length > 0 ? 'Остаточний розрахунок' : (t.comment || 'Повна оплата'),
+        isRootFinal: true
+      });
+    }
+
+    return {
+      tx: t,
+      id: t.id,
+      category: t.category,
+      createdAt,
+      closedAt,
+      initialAmount,
+      paidTotal,
+      remaining,
+      jobStatus,
+      jobLocation: t.jobLocation || '',
+      jobDesc: t.jobDesc || t.comment || '',
+      payments,
+      children
+    };
+  }).sort((a, b) => {
+    // Спочатку незакриті (unpaid / partial), потім за датою створення спаданням
+    const aOpen = a.jobStatus !== 'paid' ? 1 : 0;
+    const bOpen = b.jobStatus !== 'paid' ? 1 : 0;
+    if (aOpen !== bOpen) return bOpen - aOpen;
+    return String(b.createdAt || '').localeCompare(String(a.createdAt || '')) || String(b.id || '').localeCompare(String(a.id || ''));
+  });
+}
+
+function setJobsFilter(statusFilter, catFilter, periodMode) {
+  if (statusFilter !== null && statusFilter !== undefined) jobsStatusFilter = statusFilter;
+  if (catFilter !== null && catFilter !== undefined) jobsCatFilter = catFilter;
+  if (periodMode !== null && periodMode !== undefined) jobsPeriodMode = periodMode;
+  render();
+}
+
+function openCreateJobModal(defaultCat = 'Вишка') {
+  modal = {
+    mode: 'job_create',
+    selectedCat: defaultCat,
+    payMode: 'unpaid'
+  };
+  render();
+  setTimeout(() => {
+    const input = document.getElementById('job-total-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function selectJobCategoryChip(cat) {
+  if (!modal) return;
+  modal.selectedCat = cat;
+  const hidden = document.getElementById('job-cat-hidden');
+  if (hidden) hidden.value = cat;
+  document.querySelectorAll('#job-cat-chips .chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+}
+
+function submitCreateJob(e) {
+  e.preventDefault();
+  const form = e.target;
+  const category = form['job-category'].value || 'Вишка';
+  const rawTotal = form['job-total'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const totalAmount = parseFloat(rawTotal);
+  const createdAt = form['job-created-date'].value || toLocalDateString(new Date());
+  const jobLocation = form['job-location'].value.trim();
+  const jobDesc = form['job-desc'].value.trim();
+  const payMode = form['job-pay-mode'].value; // 'unpaid' | 'partial' | 'paid'
+
+  if (!totalAmount || totalAmount <= 0) {
+    showToast('❌ Введіть загальну суму роботи більше нуля');
+    return;
+  }
+
+  const shortComment = '';
+  const jobId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+
+  if (payMode === 'unpaid') {
+    transactions.unshift({
+      id: jobId,
+      type: 'income',
+      category,
+      amount: totalAmount,
+      initialAmount: totalAmount,
+      date: createdAt,
+      createdAt: createdAt,
+      plannedDate: createdAt,
+      status: 'pending',
+      isJob: true,
+      jobLocation,
+      jobDesc,
+      comment: shortComment
+    });
+    saveData();
+    closeModal();
+    showToast(`⏳ Роботу «${category}» (${fmt(totalAmount)} грн) додано в очікувані!`);
+    return;
+  }
+
+  if (payMode === 'paid') {
+    const paidDate = form['job-paid-date'].value || createdAt;
+    transactions.unshift({
+      id: jobId,
+      type: 'income',
+      category,
+      amount: totalAmount,
+      initialAmount: totalAmount,
+      date: paidDate,
+      createdAt: createdAt,
+      plannedDate: createdAt,
+      confirmedAt: paidDate,
+      status: 'confirmed',
+      isJob: true,
+      jobLocation,
+      jobDesc,
+      comment: shortComment
+    });
+    saveData();
+    closeModal();
+    showToast(`✅ Роботу «${category}» (+${fmt(totalAmount)} грн) зараховано!`);
+    return;
+  }
+
+  // payMode === 'partial'
+  const rawAdvance = form['job-advance-amount'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const advanceAmount = parseFloat(rawAdvance);
+  const paidDate = form['job-paid-date'].value || createdAt;
+
+  if (!advanceAmount || advanceAmount <= 0 || advanceAmount >= totalAmount) {
+    showToast('❌ Сума часткової оплати має бути більшою за 0 і меншою за загальну суму');
+    return;
+  }
+
+  const remaining = Math.round((totalAmount - advanceAmount) * 100) / 100;
+
+  // 1. Корінь роботи в очікуванні на залишок
+  transactions.unshift({
+    id: jobId,
+    type: 'income',
+    category,
+    amount: remaining,
+    initialAmount: totalAmount,
+    date: createdAt,
+    createdAt: createdAt,
+    plannedDate: createdAt,
+    status: 'pending',
+    isJob: true,
+    jobLocation,
+    jobDesc,
+    comment: shortComment
+  });
+
+  // 2. Підтверджений частковий платіж (одразу йде в баланс на головному екрані)
+  transactions.unshift({
+    id: Date.now() + 1 + '-' + Math.random().toString(36).slice(2, 7),
+    type: 'income',
+    category,
+    amount: advanceAmount,
+    date: paidDate,
+    createdAt: createdAt,
+    confirmedAt: paidDate,
+    status: 'confirmed',
+    comment: (jobLocation ? `${jobLocation} (частина)` : `Частина від ${createdAt}`),
+    parentPendingId: jobId
+  });
+
+  saveData();
+  closeModal();
+  showToast(`🌓 Зараховано +${fmt(advanceAmount)} грн, залишок ${fmt(remaining)} грн в очікуванні!`);
+}
+
+function openJobDetailsModal(jobId) {
+  const job = getAllJobsList().find(j => j.id === jobId);
+  if (!job) return;
+  modal = {
+    mode: 'job_edit',
+    job
+  };
+  render();
+}
+
+function submitJobDetails(e) {
+  e.preventDefault();
+  const form = e.target;
+  const job = modal.job;
+  const category = form['job-category'].value || job.category;
+  const createdAt = form['job-created-date'].value || job.createdAt;
+  const jobLocation = form['job-location'].value.trim();
+  const jobDesc = form['job-desc'].value.trim();
+  const rawInitial = form['job-initial-amount'].value.trim().replace(',', '.').replace(/[^0-9.]/g, '');
+  const newInitial = parseFloat(rawInitial);
+
+  if (!newInitial || newInitial <= 0) {
+    showToast('❌ Вкажіть коректну суму замовлення');
+    return;
+  }
+
+  const shortComment = '';
+  const isPending = job.tx.status === 'pending';
+
+  let updatedFields = {
+    category,
+    createdAt,
+    plannedDate: createdAt,
+    initialAmount: newInitial,
+    isJob: true,
+    jobLocation,
+    jobDesc,
+    comment: shortComment
+  };
+
+  if (isPending) {
+    // Перераховуємо залишок = нова загальна сума мінус вже виплачені частки
+    const newRemaining = Math.max(0, Math.round((newInitial - job.paidTotal) * 100) / 100);
+    updatedFields.date = createdAt;
+    if (newRemaining === 0 && job.paidTotal > 0) {
+      updatedFields.amount = 0;
+    } else {
+      updatedFields.amount = newRemaining;
+    }
+  } else {
+    // Якщо вже оплачено повністю
+    if (form['job-paid-date'] && form['job-paid-date'].value) {
+      updatedFields.confirmedAt = form['job-paid-date'].value;
+      updatedFields.date = form['job-paid-date'].value;
+    }
+    if (job.children.length === 0) {
+      updatedFields.amount = newInitial;
+    } else {
+      updatedFields.amount = Math.max(0, Math.round((newInitial - job.children.reduce((s, c) => s + c.amount, 0)) * 100) / 100);
+    }
+  }
+
+  let proposedTx = transactions.map(t => t.id === job.id ? { ...t, ...updatedFields } : t);
+  const sim = validateSimulatedState(proposedTx);
+  if (sim.wallet < 0) {
+    showToast(`❌ Відхилено: гаманець піде в мінус (${fmt(sim.wallet)} грн)`);
+    return;
+  }
+
+  transactions = proposedTx;
+  saveData();
+  closeModal();
+  showToast('✅ Деталі роботи оновлено!');
+}
+
+function reopenClosedJobToPending(jobId) {
+  const job = getAllJobsList().find(j => j.id === jobId);
+  if (!job || job.tx.status === 'pending') return;
+
+  // Перевіряємо чи не піде гаманець у мінус при знятті фінальної суми з балансу
+  const proposedTx = transactions.map(t => t.id === jobId ? {
+    ...t,
+    status: 'pending',
+    date: job.createdAt,
+    confirmedAt: null
+  } : t);
+
+  const sim = validateSimulatedState(proposedTx);
+  if (sim.wallet < 0) {
+    showToast(`❌ Неможливо повернути в борг: гаманець піде в мінус (${fmt(sim.wallet)} грн)`);
+    return;
+  }
+
+  transactions = proposedTx;
+  saveData();
+  closeModal();
+  showToast(`⏳ Суму ${fmt(job.tx.amount)} грн повернуто в очікування (борг)!`);
+}
+
+function linkStandalonePaymentToJob(paymentTxId, jobId) {
+  const payTx = transactions.find(t => t.id === paymentTxId);
+  const jobTx = transactions.find(t => t.id === jobId);
+  if (!payTx || !jobTx) return;
+
+  transactions = transactions.map(t => {
+    if (t.id === paymentTxId) {
+      return {
+        ...t,
+        parentPendingId: jobId,
+        createdAt: jobTx.createdAt || jobTx.plannedDate || jobTx.date,
+        confirmedAt: t.confirmedAt || t.date
+      };
+    }
+    if (t.id === jobId && t.status === 'pending') {
+      const curInit = t.initialAmount || t.amount;
+      const newRem = Math.max(0, Math.round((t.amount - payTx.amount) * 100) / 100);
+      return {
+        ...t,
+        initialAmount: curInit,
+        amount: newRem,
+        status: newRem === 0 ? 'confirmed' : 'pending'
+      };
+    }
+    return t;
+  });
+
+  saveData();
+  openJobDetailsModal(jobId);
+  showToast(`🔗 Платіж +${fmt(payTx.amount)} грн привʼязано до роботи!`);
 }
 
 /* ================== ІНВЕСТИЦІЇ ================== */
@@ -1809,24 +2283,50 @@ function submitModal(e) {
   }
 
   if (modal.mode === 'create') {
-    addTransaction({ type: modal.type, ...newFields, plannedDate: isPending ? dateStr : null });
+    const autoIsJob = modal.type === 'income' && (isPending || isJobCategory(category));
+    addTransaction({
+      type: modal.type,
+      ...newFields,
+      plannedDate: isPending ? dateStr : null,
+      createdAt: dateStr,
+      confirmedAt: isPending ? null : dateStr,
+      initialAmount: amount,
+      isJob: autoIsJob
+    });
     showToast(isPending ? '⏳ Заплановану операцію збережено!' : (isParking ? '🅿️ Витрату на парковку додано в облік!' : (isParkingRefund ? '↩️ Повернення успішно зараховано!' : '✅ Операцію успішно додано!')));
   } else if (modal.mode === 'edit') {
-    updateTransaction(modal.tx.id, newFields);
+    const keepCreated = modal.tx.createdAt || modal.tx.plannedDate || dateStr;
+    updateTransaction(modal.tx.id, {
+      ...newFields,
+      createdAt: keepCreated,
+      initialAmount: (!modal.tx.parentPendingId && modal.tx.status === 'pending' && !transactions.some(c => c.parentPendingId === modal.tx.id)) ? amount : (modal.tx.initialAmount || amount)
+    });
     showToast('✅ Зміни успішно збережено!');
   } else if (isConfirm) {
+    const lockedCreated = modal.tx.createdAt || modal.tx.plannedDate || modal.tx.date;
+    const prevChildrenSum = transactions
+      .filter(c => c.parentPendingId === modal.tx.id && c.status !== 'pending')
+      .reduce((s, c) => s + (c.amount || 0), 0);
+    const lockedInitial = modal.tx.initialAmount || Math.round((prevChildrenSum + modal.tx.amount) * 100) / 100;
+
     if (isPartialConfirm) {
       updateTransaction(modal.tx.id, {
         amount: remainingAmount,
+        initialAmount: lockedInitial,
+        createdAt: lockedCreated,
+        plannedDate: lockedCreated,
         category: category,
-        comment: comment || modal.tx.comment || ''
+        isJob: modal.tx.isJob || modal.tx.type === 'income',
+        comment: modal.tx.comment || comment || ''
       });
-      const partLabel = comment ? `${comment} (частина)` : (modal.tx.comment ? `${modal.tx.comment} (частина)` : `Частина очікуваної суми`);
+      const baseNote = comment || modal.tx.comment || '';
+      const partLabel = baseNote ? (baseNote.includes('(частина)') ? baseNote : `${baseNote} (частина)`) : `Частина (від ${lockedCreated})`;
       addTransaction({
         type: modal.tx.type,
         amount: amount,
         category: category,
         date: dateStr,
+        createdAt: lockedCreated,
         status: 'confirmed',
         confirmedAt: dateStr,
         comment: partLabel,
@@ -1836,7 +2336,19 @@ function submitModal(e) {
       });
       showToast(`✅ Зараховано ${fmt(amount)} грн! Залишок ${fmt(remainingAmount)} грн чекає в очікуваних ⏳`);
     } else {
-      updateTransaction(modal.tx.id, { ...newFields, status: 'confirmed', confirmedAt: dateStr });
+      updateTransaction(modal.tx.id, {
+        ...newFields,
+        date: dateStr,
+        createdAt: lockedCreated,
+        plannedDate: lockedCreated,
+        initialAmount: Math.max(lockedInitial, Math.round((prevChildrenSum + amount) * 100) / 100),
+        isJob: modal.tx.isJob || modal.tx.type === 'income',
+        jobLocation: modal.tx.jobLocation || '',
+        jobDesc: modal.tx.jobDesc || '',
+        comment: modal.tx.comment || comment || '',
+        status: 'confirmed',
+        confirmedAt: dateStr
+      });
       showToast('✅ Операцію успішно підтверджено повністю!');
     }
   }
@@ -2022,6 +2534,183 @@ function renderInvestTab(simState) {
   return html;
 }
 
+
+function renderJobsTab() {
+  const allJobs = getAllJobsList();
+  const now = currentMonthDate();
+  const mKey = monthKey(now);
+
+  // Борг по всіх відкритих роботах (незалежно від місяця, щоб нічого не загубилося)
+  const openJobsAll = allJobs.filter(j => j.jobStatus !== 'paid');
+  const totalDebtAll = openJobsAll.reduce((s, j) => s + j.remaining, 0);
+  const vyshkaDebt = openJobsAll.filter(j => (j.category || '').toLowerCase() === 'вишка').reduce((s, j) => s + j.remaining, 0);
+  const shabashkaDebt = openJobsAll.filter(j => (j.category || '').toLowerCase() === 'шабашка').reduce((s, j) => s + j.remaining, 0);
+
+  // Фільтруємо список за періодом
+  const periodJobs = jobsPeriodMode === 'month'
+    ? allJobs.filter(j => (j.createdAt || '').slice(0, 7) === mKey || (j.closedAt || '').slice(0, 7) === mKey || j.jobStatus !== 'paid')
+    : allJobs;
+
+  const totalOrderedPeriod = periodJobs.reduce((s, j) => s + j.initialAmount, 0);
+  const totalPaidPeriod = periodJobs.reduce((s, j) => s + j.paidTotal, 0);
+  const totalRemPeriod = periodJobs.reduce((s, j) => s + j.remaining, 0);
+
+  // Фільтруємо за статусом та категорією
+  const filteredJobs = periodJobs.filter(j => {
+    if (jobsStatusFilter === 'open' && j.jobStatus === 'paid') return false;
+    if (jobsStatusFilter === 'partial' && j.jobStatus !== 'partial') return false;
+    if (jobsStatusFilter === 'paid' && j.jobStatus !== 'paid') return false;
+    if (jobsCatFilter !== 'all' && (j.category || '').toLowerCase() !== jobsCatFilter.toLowerCase()) return false;
+    return true;
+  });
+
+  let html = `
+    <div class="jobs-hero">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div class="summary-label" style="margin:0;">Ще мають заплатити (загальний борг)</div>
+        <div style="display:flex; gap:4px;">
+          <button class="jobs-filter-chip ${jobsPeriodMode === 'all' ? 'active' : ''}" style="padding:4px 9px; font-size:11.5px;" onclick="setJobsFilter(null, null, 'all')">Весь час</button>
+          <button class="jobs-filter-chip ${jobsPeriodMode === 'month' ? 'active' : ''}" style="padding:4px 9px; font-size:11.5px;" onclick="setJobsFilter(null, null, 'month')">${MONTHS_UK[now.getMonth()]}</button>
+        </div>
+      </div>
+      <div class="jobs-debt-total">${fmt(totalDebtAll)} грн</div>
+      <div class="jobs-cat-pills">
+        <div class="jobs-cat-pill">🏗️ Вишка борг: <b>${fmt(vyshkaDebt)} грн</b></div>
+        <div class="jobs-cat-pill">🛠️ Шабашка борг: <b>${fmt(shabashkaDebt)} грн</b></div>
+      </div>
+      <div class="split-row" style="margin-top:12px; gap:12px;">
+        <div class="split-col">
+          <div class="summary-label">Замовлено</div>
+          <div class="split-value" style="font-size:17px;">${fmt(totalOrderedPeriod)} грн</div>
+        </div>
+        <div class="split-col">
+          <div class="summary-label">Виплачено</div>
+          <div class="split-value income" style="font-size:17px;">+${fmt(totalPaidPeriod)} грн</div>
+        </div>
+        <div class="split-col">
+          <div class="summary-label">Залишок</div>
+          <div class="split-value" style="font-size:17px; color:var(--accent);">${fmt(totalRemPeriod)} грн</div>
+        </div>
+      </div>
+    </div>
+
+    ${jobsPeriodMode === 'month' ? `
+      <div class="month-nav" style="margin-bottom:14px;">
+        <button onclick="changeMonth(-1)">‹</button>
+        <div class="month-label">${MONTHS_UK[now.getMonth()] + ' ' + now.getFullYear()}</div>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+    ` : ''}
+
+    <button class="jobs-add-btn" onclick="openCreateJobModal('Вишка')">
+      <span>+ Записати роботу (Вишка / Шабашка)</span>
+    </button>
+
+    <div class="jobs-filter-bar">
+      <button class="jobs-filter-chip ${jobsStatusFilter === 'all' ? 'active' : ''}" onclick="setJobsFilter('all', null, null)">Усі (${periodJobs.length})</button>
+      <button class="jobs-filter-chip ${jobsStatusFilter === 'open' ? 'active' : ''}" onclick="setJobsFilter('open', null, null)">⏳ Не закриті (${periodJobs.filter(j => j.jobStatus !== 'paid').length})</button>
+      <button class="jobs-filter-chip ${jobsStatusFilter === 'partial' ? 'active' : ''}" onclick="setJobsFilter('partial', null, null)">🌓 Частково (${periodJobs.filter(j => j.jobStatus === 'partial').length})</button>
+      <button class="jobs-filter-chip ${jobsStatusFilter === 'paid' ? 'active' : ''}" onclick="setJobsFilter('paid', null, null)">✅ Оплачені (${periodJobs.filter(j => j.jobStatus === 'paid').length})</button>
+    </div>
+
+    <div class="jobs-filter-bar" style="margin-top:-6px; margin-bottom:16px;">
+      <button class="jobs-filter-chip ${jobsCatFilter === 'all' ? 'active' : ''}" onclick="setJobsFilter(null, 'all', null)">Всі категорії</button>
+      <button class="jobs-filter-chip ${jobsCatFilter === 'Вишка' ? 'active' : ''}" onclick="setJobsFilter(null, 'Вишка', null)">🏗️ Вишка</button>
+      <button class="jobs-filter-chip ${jobsCatFilter === 'Шабашка' ? 'active' : ''}" onclick="setJobsFilter(null, 'Шабашка', null)">🛠️ Шабашка</button>
+    </div>
+
+    <section class="list-section">
+  `;
+
+  if (filteredJobs.length === 0) {
+    html += `<div class="empty-state">Немає записів за обраним фільтром. Натисніть «+ Записати роботу», щоб додати виїзд з описом і датою.</div>`;
+  } else {
+    html += filteredJobs.map(j => {
+      const pct = j.initialAmount > 0 ? Math.min(100, Math.round((j.paidTotal / j.initialAmount) * 100)) : 0;
+      const badgeCls = j.jobStatus;
+      const badgeTxt = j.jobStatus === 'paid'
+        ? '✅ Оплачено повністю'
+        : (j.jobStatus === 'partial' ? `🌓 Частково (${pct}%)` : '⏳ Очікує оплати');
+
+      return `
+        <div class="job-card status-${j.jobStatus}">
+          <div class="job-header">
+            <div>
+              <div class="job-title-row">
+                <span class="job-cat-title">${iconFor(j.category)} ${escapeHtml(j.category)}</span>
+                <span class="job-status-badge ${badgeCls}">${badgeTxt}</span>
+              </div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
+                Сума роботи: <b>${fmt(j.initialAmount)} грн</b> • Отримано: <b style="color:var(--income)">${fmt(j.paidTotal)} грн</b>
+              </div>
+            </div>
+            <div class="job-amounts-right">
+              ${j.remaining > 0 ? `
+                <div class="job-main-amt" style="color:var(--accent)">Борг: ${fmt(j.remaining)} грн</div>
+                <div class="job-sub-amt">із ${fmt(j.initialAmount)} грн</div>
+              ` : `
+                <div class="job-main-amt" style="color:var(--income)">+${fmt(j.paidTotal)} грн</div>
+                <div class="job-sub-amt">закрито</div>
+              `}
+            </div>
+          </div>
+
+          ${(j.jobLocation || j.jobDesc) ? `
+            <div class="job-desc-box">
+              ${j.jobLocation ? `<div class="job-desc-line"><span>📍</span><div><b>Де був:</b> ${escapeHtml(j.jobLocation)}</div></div>` : ''}
+              ${j.jobDesc ? `<div class="job-desc-line"><span>🛠️</span><div><b>Що робив:</b> ${escapeHtml(j.jobDesc)}</div></div>` : ''}
+            </div>
+          ` : `
+            <div style="margin-bottom:10px;">
+              <button class="jobs-filter-chip" style="font-size:12px; padding:5px 10px;" onclick="openJobDetailsModal('${escapeHtml(j.id)}')">✏️ + Додати опис (де був і що робив)</button>
+            </div>
+          `}
+
+          <div class="bar-track" style="margin-bottom:10px;">
+            <div class="bar-fill ${j.jobStatus === 'paid' ? 'income' : ''}" style="width:${pct}%; ${j.jobStatus !== 'paid' ? 'background:var(--accent);' : ''}"></div>
+          </div>
+
+          <div class="job-timeline">
+            <div class="job-tl-item">
+              <div class="job-tl-left">📅 <span>Створено (дата роботи):</span></div>
+              <div class="job-tl-right" style="color:var(--text-primary)">${escapeHtml(j.createdAt)} (${fmt(j.initialAmount)} грн)</div>
+            </div>
+            ${j.payments.map((p, idx) => `
+              <div class="job-tl-item">
+                <div class="job-tl-left">
+                  <span>${p.isRootFinal && j.payments.length === 1 ? '✅' : '💵'}</span>
+                  <span>${p.isRootFinal && j.payments.length === 1 ? 'Повна оплата' : `Оплата #${idx + 1}`}: <b>${escapeHtml(p.date)}</b></span>
+                </div>
+                <div class="job-tl-right" style="color:var(--income)">
+                  <span>+${fmt(p.amount)} грн</span>
+                  ${p.isChild ? `<button class="tx-btn" style="padding:2px 5px; font-size:12px;" onclick="deleteTransaction('${escapeHtml(p.id)}')" title="Скасувати цей платіж і повернути в борг">↩️</button>` : ''}
+                </div>
+              </div>
+            `).join('')}
+            ${j.remaining > 0 ? `
+              <div class="job-tl-item">
+                <div class="job-tl-left" style="color:var(--accent)">⏳ <span>Залишок до оплати:</span></div>
+                <div class="job-tl-right" style="color:var(--accent)">${fmt(j.remaining)} грн</div>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="job-actions">
+            ${j.remaining > 0 ? `
+              <button class="job-btn pay" onclick="openConfirmModal('${escapeHtml(j.id)}')">💵 Внести оплату</button>
+            ` : ''}
+            <button class="job-btn" onclick="openJobDetailsModal('${escapeHtml(j.id)}')">✏️ Деталі / Звірка</button>
+            <button class="job-btn del" onclick="deleteTransaction('${escapeHtml(j.id)}')" title="Видалити">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  html += `</section>`;
+  return html;
+}
+
 function render() {
   const app = document.getElementById('app');
   if (!loaded) { app.innerHTML = '<div class="loading-msg">Завантаження…</div>'; return; }
@@ -2034,19 +2723,22 @@ function render() {
     <div class="eyebrow"><span class="bag">💰</span><h1>Фінанси</h1></div>
     <div class="tabs-bar">
       <button class="tab-btn ${activeTab === 'finance' ? 'active' : ''}" onclick="switchTab('finance')">💳 Основна</button>
+      <button class="tab-btn ${activeTab === 'jobs' ? 'active' : ''}" onclick="switchTab('jobs')">🛠️ Роботи</button>
       <button class="tab-btn ${activeTab === 'invest' ? 'active' : ''}" onclick="switchTab('invest')">📈 Інвестиції</button>
     </div>
   `;
 
   if (activeTab === 'invest') {
     htmlStr += renderInvestTab(simState);
+  } else if (activeTab === 'jobs') {
+    htmlStr += renderJobsTab();
   } else {
     const now = currentMonthDate();
     const key = monthKey(now);
     const monthTx = txForMonth(key);
 
     const monthConfirmed = monthTx.filter(t => t.status !== 'pending');
-    const monthPending = monthTx.filter(t => t.status === 'pending');
+    const monthPending = monthOffset === 0 ? transactions.filter(t => t.status === 'pending' && String(t.date || '').slice(0, 7) <= key) : monthTx.filter(t => t.status === 'pending');
     const income = monthConfirmed.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = monthConfirmed.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const saved = monthConfirmed.filter(t => t.type === 'save').reduce((s, t) => s + t.amount, 0);
@@ -2267,6 +2959,169 @@ function importData(event) {
 }
 
 function renderModal() {
+  if (modal.mode === 'job_create') {
+    const incomeCats = customCategories.income || ['Вишка', 'Шабашка'];
+    const prioritizedCats = ['Вишка', 'Шабашка', ...incomeCats.filter(c => c !== 'Вишка' && c !== 'Шабашка')];
+    const selCat = modal.selectedCat || 'Вишка';
+
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h3 class="sheet-title">🛠️ Нова робота (Вишка / Шабашка)</h3>
+        <p style="font-size:12.5px; color:var(--text-secondary); margin:-10px 0 14px;">
+          Запис автоматично синхронізується з головним екраном (на головному відобразиться лаконічно без зайвих деталей).
+        </p>
+        <form onsubmit="submitCreateJob(event)">
+          <div class="field">
+            <label>Напрямок роботи</label>
+            <input type="hidden" name="job-category" id="job-cat-hidden" value="${escapeHtml(selCat)}">
+            <div class="chip-grid" id="job-cat-chips">
+              ${prioritizedCats.map(c => `
+                <button type="button" class="chip ${c === selCat ? 'active' : ''}" data-cat="${escapeHtml(c)}" onclick="selectJobCategoryChip('${escapeHtml(c)}')">
+                  ${iconFor(c)} ${escapeHtml(c)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <div class="field" style="flex:1.1;">
+              <label>Сума роботи, грн</label>
+              <input id="job-total-input" name="job-total" type="text" inputmode="decimal" placeholder="0" required autocomplete="off">
+            </div>
+            <div class="field" style="flex:1;">
+              <label>📅 Дата роботи (виїзду)</label>
+              <input name="job-created-date" type="date" value="${toLocalDateString(new Date())}" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>📍 Де був (обʼєкт / адреса / замовник)</label>
+            <input name="job-location" type="text" placeholder="Напр: Вишгород, ЖК / Склад / Імʼя" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label>🛠️ Що робив (короткий опис)</label>
+            <input name="job-desc" type="text" placeholder="Напр: Монтаж на висоті, 4 год" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label>Статус оплати зараз</label>
+            <select name="job-pay-mode" onchange="
+              document.getElementById('job-partial-box').style.display = this.value === 'partial' ? 'block' : 'none';
+              document.getElementById('job-paid-date-box').style.display = (this.value === 'partial' || this.value === 'paid') ? 'block' : 'none';
+            ">
+              <option value="unpaid">⏳ Ще не платили (вся сума в очікуванні)</option>
+              <option value="partial">🌓 Заплатили частину / аванс</option>
+              <option value="paid">✅ Оплатили повністю одразу</option>
+            </select>
+          </div>
+
+          <div id="job-partial-box" style="display:none; background:var(--bg-elevated-2); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--stroke); margin-bottom:14px;">
+            <div class="field" style="margin-bottom:0;">
+              <label>Скільки вже заплатили зараз, грн</label>
+              <input name="job-advance-amount" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+            </div>
+          </div>
+
+          <div id="job-paid-date-box" style="display:none;">
+            <div class="field">
+              <label>💵 Дата фактичної оплати</label>
+              <input name="job-paid-date" type="date" value="${toLocalDateString(new Date())}">
+            </div>
+          </div>
+
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm income">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  if (modal.mode === 'job_edit') {
+    const j = modal.job;
+    const isPending = j.tx.status === 'pending';
+    // Знаходимо неприв'язані підтверджені платежі тієї ж категорії (на випадок звірки старих записів)
+    const unlinkedPayments = transactions.filter(t =>
+      t.id !== j.id &&
+      t.type === 'income' &&
+      t.status !== 'pending' &&
+      !t.parentPendingId &&
+      !t.isJob &&
+      (t.category || '').toLowerCase() === (j.category || '').toLowerCase()
+    );
+
+    return `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet" style="max-height:88vh; overflow-y:auto;">
+        <h3 class="sheet-title">✏️ Деталі та звірка роботи</h3>
+        <form onsubmit="submitJobDetails(event)">
+          <div style="display:flex; gap:10px;">
+            <div class="field" style="flex:1;">
+              <label>Категорія</label>
+              <input name="job-category" type="text" value="${escapeHtml(j.category)}" required>
+            </div>
+            <div class="field" style="flex:1;">
+              <label>📅 Дата створення (роботи)</label>
+              <input name="job-created-date" type="date" value="${escapeHtml(j.createdAt)}" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>📍 Де був (обʼєкт / адреса / замовник)</label>
+            <input name="job-location" type="text" value="${escapeHtml(j.jobLocation)}" placeholder="Вкажіть локацію або замовника">
+          </div>
+
+          <div class="field">
+            <label>🛠️ Що робив (короткий опис)</label>
+            <input name="job-desc" type="text" value="${escapeHtml(j.jobDesc)}" placeholder="Що саме виконували">
+          </div>
+
+          <div class="field">
+            <label>💰 Загальна сума замовлення (початкова), грн</label>
+            <input name="job-initial-amount" type="text" inputmode="decimal" value="${j.initialAmount}" required>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
+              Вже виплачено: <b style="color:var(--income)">${fmt(j.paidTotal)} грн</b> • Залишок боргу: <b style="color:var(--accent)">${fmt(j.remaining)} грн</b>
+            </div>
+          </div>
+
+          ${!isPending ? `
+            <div class="field">
+              <label>✅ Дата фінального розрахунку</label>
+              <input name="job-paid-date" type="date" value="${escapeHtml(j.closedAt || j.tx.date)}">
+            </div>
+            <div style="margin-bottom:14px;">
+              <button type="button" class="backup-btn" style="width:100%; color:var(--accent); border-color:var(--accent);" onclick="reopenClosedJobToPending('${escapeHtml(j.id)}')">
+                ↩️ Повернути фінальну суму (${fmt(j.tx.amount)} грн) назад у борг (очікування)
+              </button>
+            </div>
+          ` : ''}
+
+          ${(isPending && unlinkedPayments.length > 0) ? `
+            <div style="background:var(--bg-elevated-2); border:1px solid var(--stroke); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;">
+              <div style="font-size:12px; color:var(--accent); font-weight:600; margin-bottom:6px;">
+                🔗 Привʼязати існуючий платіж до цієї роботи:
+              </div>
+              ${unlinkedPayments.slice(0, 5).map(p => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12.5px;">
+                  <span>${escapeHtml(p.date)}: <b>+${fmt(p.amount)} грн</b> ${p.comment ? `(${escapeHtml(p.comment)})` : ''}</span>
+                  <button type="button" class="chip" style="padding:3px 8px; font-size:11.5px; color:var(--income); border-color:var(--income);" onclick="linkStandalonePaymentToJob('${escapeHtml(p.id)}', '${escapeHtml(j.id)}')">Привʼязати</button>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+            <button type="submit" class="btn btn-confirm edit">Зберегти</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  }
+
   if (modal.mode === 'setup_start_balance') {
     return `
     <div class="overlay" onclick="if(event.target===this) closeModal()">
@@ -2791,10 +3646,24 @@ function renderModal() {
     <div class="sheet">
       <h3 class="sheet-title">${title}</h3>
       <form onsubmit="submitModal(event)">
+        ${isConfirm ? `
+          <div style="background:var(--bg-elevated-2); border:1px solid var(--stroke); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px; font-size:12.5px; line-height:1.45;">
+            <div>📅 <b>Створено (дата роботи):</b> ${escapeHtml(tx.createdAt || tx.plannedDate || tx.date)}</div>
+            ${tx.jobLocation ? `<div>📍 <b>Де був:</b> ${escapeHtml(tx.jobLocation)}</div>` : ''}
+            ${tx.jobDesc ? `<div>🛠️ <b>Що робив:</b> ${escapeHtml(tx.jobDesc)}</div>` : ''}
+            ${tx.initialAmount && tx.initialAmount > tx.amount ? `<div>💵 <b>Замовлення всього:</b> ${fmt(tx.initialAmount)} грн (вже оплачено: <span style="color:var(--income)">+${fmt(tx.initialAmount - tx.amount)} грн</span>)</div>` : ''}
+          </div>
+        ` : ''}
         <div class="field">
-          <label>${isConfirm ? `Фактична сума до зарахування, грн (всього очікується: ${fmt(tx.amount)} грн)` : 'Сума, грн'}</label>
+          <label>${isConfirm ? `Сума оплати зараз, грн (залишок боргу: ${fmt(tx.amount)} грн)` : 'Сума, грн'}</label>
           <input id="amount-input" name="amount" type="text" inputmode="decimal" value="${escapeHtml(currentAmount)}" placeholder="0" required autocomplete="off" ${isConfirm ? `oninput="updatePartialHint(this.value, ${tx.amount})"` : ''}>
-          ${isConfirm ? `<div id="partial-hint" style="font-size:12.5px; color:var(--accent); margin-top:6px; display:none;"></div>` : ''}
+          ${isConfirm ? `
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button type="button" class="chip" style="padding:5px 10px; font-size:12px;" onclick="const inp=document.getElementById('amount-input'); inp.value='${Math.round(tx.amount / 2)}'; updatePartialHint(inp.value, ${tx.amount});">🌓 Половина (${fmt(Math.round(tx.amount / 2))} грн)</button>
+              <button type="button" class="chip" style="padding:5px 10px; font-size:12px;" onclick="const inp=document.getElementById('amount-input'); inp.value='${tx.amount}'; updatePartialHint(inp.value, ${tx.amount});">✅ Весь залишок (${fmt(tx.amount)} грн)</button>
+            </div>
+            <div id="partial-hint" style="font-size:12.5px; color:var(--accent); margin-top:6px; display:none;"></div>
+          ` : ''}
         </div>
         <div class="field">
           <label>${isConfirm ? 'Фактична дата проведення' : 'Дата'}</label>
