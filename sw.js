@@ -1,10 +1,10 @@
-const CACHE_NAME = 'finance-app-v4';
+const CACHE_NAME = 'finance-app-v5';
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './1.png',
+  './2.png'
 ];
 
 self.addEventListener('install', (event) => {
