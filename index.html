@@ -492,7 +492,7 @@ window.onerror = function(msg, url, line, col, error) {
       '<div style="font-size:36px; margin-bottom:12px;">⚠️</div>' +
       '<div style="font-size:17px; font-weight:700; color:#f2f3f5; margin-bottom:8px;">Помилка запуску скрипта</div>' +
       '<div style="font-size:13px; color:#8b90a0; margin-bottom:20px; word-break:break-word;">' + (msg || error) + ' (рядок ' + line + ')</div>' +
-      '<button onclick="localStorage.clear(); location.reload();" style="background:#232733; color:#f2f3f5; border:1px solid #2b2f3b; padding:12px 18px; border-radius:12px; font-size:14px; cursor:pointer;">Скинути памʼять і перезавантажити</button>' +
+      '<button onclick="modal=null; if(typeof render===\'function\'){render();}else{location.reload();}" style="background:#d4a24c; color:#14161c; font-weight:700; border:none; padding:12px 18px; border-radius:12px; font-size:14px; cursor:pointer;">Повернутися в додаток</button>' +
     '</div>';
   }
   return false;
@@ -527,14 +527,14 @@ const DEFAULT_CATEGORY_ICONS = {
   'Розваги': '🎬', 'Здоровʼя': '💊', 'Інше': '📦', 'Заощадження': '🏦',
   'Вишка': '🏗️', 'Шабашка': '🛠️', 'Підробіток': '🔨', 'Пальне': '⛽',
   'АЗС': '⛽', 'Таксі': '🚖', 'Кафе': '☕', 'Одяг': '👕', 'Шопінг': '🛍️',
-  'Діти': '👶', 'Тварини': '🐾', 'Техніка': '📱', 'Ремонт': '🔧',
+  'Сім\'я': '👨‍👩‍👧', 'Сімʼя': '👨‍👩‍👧', 'Сімя': '👨‍👩‍👧', 'Діти': '👶', 'Тварини': '🐾', 'Техніка': '📱', 'Ремонт': '🔧',
   'Спорт': '🏋️', 'Подарунки': '🎁', 'Звʼязок': '📶', 'Інтернет': '🌐',
   'Інвестиції': '📈'
 };
 
 const PRESET_ICONS = [
   '🏗️', '🛠️', '💼', '💵', '💻', '🚗', '⛽', '🚖', '🍽️', '☕', 
-  '🏠', '💡', '💊', '🎬', '🛍️', '👕', '👶', '🐾', '📱', '🔧', 
+  '🏠', '💡', '💊', '🎬', '🛍️', '👕', '👨‍👩‍👧', '❤️', '👶', '🐾', '📱', '🔧', 
   '🏋️', '🎁', '✈️', '🏦', '🅿️', '↩️', '📦', '🍕', '🛒', '🎓',
   '💰', '🪙', '🚜', '🧰', '⚡', '📶', '🍺', '🏥', '🎯', '🔥'
 ];
@@ -775,6 +775,27 @@ function selectIconForCategory(cat, icon) {
   if (modal && modal.prevModal) modal = modal.prevModal;
   else modal = null;
   render();
+}
+
+function handlePresetIconClick(ic) {
+  if (!modal || modal.mode !== 'icon_picker') return;
+  if (modal.category === '__custom__') {
+    pickCustomIcon(ic);
+  } else {
+    selectIconForCategory(modal.category, ic);
+  }
+}
+
+function submitIconPickerForm(e) {
+  e.preventDefault();
+  if (!modal || modal.mode !== 'icon_picker') return;
+  const val = e.target['custom-icon-input'].value.trim();
+  if (!val) return;
+  if (modal.category === '__custom__') {
+    pickCustomIcon(val);
+  } else {
+    selectIconForCategory(modal.category, val);
+  }
 }
 
 function submitCustomIcon(e, cat) {
@@ -2977,7 +2998,7 @@ function renderModal() {
             <input type="hidden" name="job-category" id="job-cat-hidden" value="${escapeHtml(selCat)}">
             <div class="chip-grid" id="job-cat-chips">
               ${prioritizedCats.map(c => `
-                <button type="button" class="chip ${c === selCat ? 'active' : ''}" data-cat="${escapeHtml(c)}" onclick="selectJobCategoryChip('${escapeHtml(c)}')">
+                <button type="button" class="chip ${c === selCat ? 'active' : ''}" data-cat="${escapeHtml(c)}" onclick="selectJobCategoryChip(this.dataset.cat)">
                   ${iconFor(c)} ${escapeHtml(c)}
                 </button>
               `).join('')}
@@ -3587,7 +3608,7 @@ function renderModal() {
         </p>
         <div class="sheet-actions">
           <button type="button" class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
-          <button type="button" class="btn btn-danger" style="background:var(--expense); color:#14161c; font-weight:700;" onclick="executeDeleteCategory('${type}', '${escapeHtml(cat)}')">Видалити</button>
+          <button type="button" class="btn btn-danger" style="background:var(--expense); color:#14161c; font-weight:700;" onclick="executeDeleteCategory(modal.catType, modal.catName)">Видалити</button>
         </div>
       </div>
     </div>`;
@@ -3604,16 +3625,16 @@ function renderModal() {
         <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Натисніть на бажану іконку або введіть свій емодзі нижче:</p>
         <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; margin-bottom:18px;">
           ${PRESET_ICONS.map(ic => `
-            <button type="button" class="chip" onclick="${isCustom ? `pickCustomIcon('${ic}')` : `selectIconForCategory('${escapeHtml(targetCat)}', '${ic}')`}" style="font-size:22px; padding:10px 0; text-align:center; display:flex; align-items:center; justify-content:center;">
+            <button type="button" class="chip" data-icon="${escapeHtml(ic)}" onclick="handlePresetIconClick(this.dataset.icon)" style="font-size:22px; padding:10px 0; text-align:center; display:flex; align-items:center; justify-content:center;">
               ${ic}
             </button>
           `).join('')}
         </div>
-        <form onsubmit="${isCustom ? 'submitCustomNewIcon(event)' : `submitCustomIcon(event, '${escapeHtml(targetCat)}')`}">
+        <form onsubmit="submitIconPickerForm(event)">
           <div class="field">
             <label>Або свій емодзі з клавіатури</label>
             <div style="display:flex; gap:8px;">
-              <input name="custom-icon-input" type="text" placeholder="Будь-який емодзі 🎯" style="font-size:18px; flex:1;" required maxlength="4">
+              <input name="custom-icon-input" type="text" placeholder="Будь-який емодзі 🎯" style="font-size:18px; flex:1;" required maxlength="16">
               <button type="submit" class="btn btn-confirm edit" style="flex:0.6; padding:10px;">Задати</button>
             </div>
           </div>
